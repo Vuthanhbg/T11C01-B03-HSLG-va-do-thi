@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mô Phỏng Hàm Phần Lẻ (Tuần Hoàn)</title>
+    <!-- Tích hợp MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            /* Phong cách Sách giáo khoa */
+            --bg-body: #f8f9fa;
+            --bg-panel: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --primary-color: #0d6efd;
+            --graph-color: #0d6efd;
+            --axis-color: #000000;
+            --grid-color: #e9ecef;
+            --point-color: #dc3545;
+            --btn-text: #ffffff;
+            --font-main: 'Times New Roman', Times, serif;
+            --shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        [data-theme="realistic"] {
+            /* Phong cách Dao động ký (Oscilloscope) */
+            --bg-body: #121212;
+            --bg-panel: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333333;
+            --primary-color: #39ff14; /* Neon Green */
+            --graph-color: #39ff14;
+            --axis-color: #aaaaaa;
+            --grid-color: #2a2a2a;
+            --point-color: #ff00ff; /* Magenta */
+            --btn-text: #000000;
+            --font-main: 'Consolas', 'Courier New', monospace;
+            --shadow: 0 4px 15px rgba(0, 255, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+
+        header {
+            grid-column: 1 / -1;
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 15px;
+            margin-bottom: 10px;
+        }
+
+        h1, h2, h3 { margin-top: 0; }
+        
+        .panel {
+            background-color: var(--bg-panel);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: var(--btn-text);
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        button:hover { opacity: 0.8; }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        [data-theme="realistic"] .btn-outline { color: var(--primary-color); }
+
+        .slider-group {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: rgba(128, 128, 128, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--primary-color);
+        }
+
+        .canvas-container {
+            width: 100%;
+            background-color: var(--bg-panel);
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 1.1em;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+        }
+
+        th { background-color: rgba(128, 128, 128, 0.1); }
+        .highlight { color: var(--point-color); font-weight: bold; }
+
+        .pedagogy-box {
+            border-left: 4px solid var(--point-color);
+            padding-left: 15px;
+            margin-top: 20px;
+        }
+        .pedagogy-box h3 { color: var(--point-color); }
+        .pedagogy-box ol { padding-left: 15px; }
+        .pedagogy-box li { margin-bottom: 10px; }
+    </style>
+</head>
+<body data-theme="textbook">
+
+<div class="container">
+    <header>
+        <h1>Mô phỏng Hàm Số Tuần Hoàn (Sóng răng cưa)</h1>
+        <h2>Hàm phần lẻ: \( f(x) = \{x\} = x - \lfloor x \rfloor \)</h2>
+    </header>
+
+    <main class="left-col">
+        <section class="panel">
+            <div class="controls">
+                <button id="toggleTheme" class="btn-outline">Đổi giao diện: Chân thực (Radar)</button>
+                <button id="btnPlay">▶ Chạy tự động</button>
+            </div>
+            
+            <div class="slider-group">
+                <label for="xSlider"><strong>Chọn x:</strong></label>
+                <input type="range" id="xSlider" min="-2" max="3" step="0.01" value="0.5">
+                <span id="xLabel" style="min-width: 80px; font-weight: bold;">x = 0.50</span>
+            </div>
+
+            <div class="canvas-container" aria-label="Đồ thị hàm số phần lẻ">
+                <canvas id="simCanvas" width="800" height="400"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <aside class="right-col">
+        <section class="panel">
+            <h3>Phân tích tính tuần hoàn</h3>
+            <p>
+                Tập xác định: \( D = \mathbb{R} \)<br>
+                Hàm số tuần hoàn với chu kì <strong>\( T = 1 \)</strong>.<br>
+                Đặc điểm: Giá trị luôn nằm trong nửa khoảng \( [0, 1) \).
+            </p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Đại lượng</th>
+                        <th>Tại \( x \)</th>
+                        <th>Tại \( x + T \)</th>
+                        <th>Tại \( x - T \)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Biến số</td>
+                        <td id="valX">0.50</td>
+                        <td id="valXPlus">1.50</td>
+                        <td id="valXMinus">-0.50</td>
+                    </tr>
+                    <tr>
+                        <td>Phần nguyên \( \lfloor x \rfloor \)</td>
+                        <td id="valIntX">0</td>
+                        <td id="valIntXPlus">1</td>
+                        <td id="valIntXMinus">-1</td>
+                    </tr>
+                    <tr>
+                        <td>\( f(x) = x - \lfloor x \rfloor \)</td>
+                        <td class="highlight" id="valFx">0.50</td>
+                        <td class="highlight" id="valFxPlus">0.50</td>
+                        <td class="highlight" id="valFxMinus">0.50</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div style="text-align: center; margin-top: 15px; font-weight: bold; color: var(--primary-color);">
+                \( f(x) = f(x+1) = f(x-1) \)
+            </div>
+        </section>
+
+        <section class="panel pedagogy-box">
+            <h3>Gợi ý sư phạm</h3>
+            <ol>
+                <li>Tại các điểm số nguyên (ví dụ \(x=1, 2...\)), tại sao đồ thị lại có một chấm đặc ở dưới và một vòng tròn rỗng ở trên? (Gợi ý: Tính \(f(1)\)).</li>
+                <li>Khi kéo thanh trượt, quan sát 3 điểm màu. Sự di chuyển của chúng giống hệt nhau ở các chu kì khác nhau đúng không?</li>
+                <li>Khác với hàm Sin/Cos, đồ thị này bị "đứt gãy". Theo em, trong thực tế sóng dạng này (răng cưa) thường xuất hiện ở đâu?</li>
+            </ol>
+        </section>
+    </aside>
+</div>
+<!-- Phần bản quyền tác giả -->
+        <div style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px dashed #cbd5e1; color: #475569; font-size: 0.95em;">
+            &copy; Bản quyền sáng tạo số: <strong>Thầy Vũ Trung Thành - THPT Bình Giang</strong> | 📞 0979.791.802
+        </div>
+<script>
+    // --- KHỞI TẠO ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const xSlider = document.getElementById('xSlider');
+    const toggleTheme = document.getElementById('toggleTheme');
+    const btnPlay = document.getElementById('btnPlay');
+    
+    // UI Data Elements
+    const xLabel = document.getElementById('xLabel');
+    const valX = document.getElementById('valX'), valXPlus = document.getElementById('valXPlus'), valXMinus = document.getElementById('valXMinus');
+    const valIntX = document.getElementById('valIntX'), valIntXPlus = document.getElementById('valIntXPlus'), valIntXMinus = document.getElementById('valIntXMinus');
+    const valFx = document.getElementById('valFx'), valFxPlus = document.getElementById('valFxPlus'), valFxMinus = document.getElementById('valFxMinus');
+
+    // State Variables
+    let currentX = parseFloat(xSlider.value);
+    let isRealistic = false;
+    let isPlaying = false;
+    let animationId;
+    let dir = 1;
+
+    // Viewport Toán học
+    const X_MIN = -2.5, X_MAX = 3.5;
+    const Y_MIN = -0.5, Y_MAX = 1.5;
+    const T = 1; // Chu kì
+
+    // Hàm toán học
+    function frac(x) {
+        // Xử lý sai số dấu phẩy động của JS để tránh -0.00
+        let result = x - Math.floor(x);
+        if (Math.abs(result - 1) < 0.0001) result = 0; 
+        return result;
+    }
+
+    // Tọa độ toán học -> Tọa độ Canvas
+    function toCanvas(mathX, mathY) {
+        const cx = ((mathX - X_MIN) / (X_MAX - X_MIN)) * canvas.width;
+        const cy = canvas.height - ((mathY - Y_MIN) / (Y_MAX - Y_MIN)) * canvas.height;
+        return { x: cx, y: cy };
+    }
+
+    function getCssColor(varName) {
+        return getComputedStyle(document.body).getPropertyValue(varName).trim();
+    }
+
+    // --- VẼ ĐỒ THỊ ---
+    function drawSystem() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const gridColor = getCssColor('--grid-color');
+        const axisColor = getCssColor('--axis-color');
+
+        // Vẽ lưới
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = Math.ceil(X_MIN); x <= Math.floor(X_MAX); x += 0.5) {
+            let p1 = toCanvas(x, Y_MIN), p2 = toCanvas(x, Y_MAX);
+            ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        }
+        for (let y = Math.ceil(Y_MIN); y <= Math.floor(Y_MAX); y += 0.5) {
+            let p1 = toCanvas(X_MIN, y), p2 = toCanvas(X_MAX, y);
+            ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        }
+        ctx.stroke();
+
+        // Trục tọa độ
+        ctx.strokeStyle = axisColor;
+        ctx.lineWidth = isRealistic ? 1 : 2;
+        ctx.beginPath();
+        // Ox
+        let ox1 = toCanvas(X_MIN, 0), ox2 = toCanvas(X_MAX, 0);
+        ctx.moveTo(ox1.x, ox1.y); ctx.lineTo(ox2.x, ox2.y);
+        // Oy
+        let oy1 = toCanvas(0, Y_MIN), oy2 = toCanvas(0, Y_MAX);
+        ctx.moveTo(oy1.x, oy1.y); ctx.lineTo(oy2.x, oy2.y);
+        ctx.stroke();
+
+        // Nhãn hệ trục
+        ctx.fillStyle = axisColor;
+        ctx.font = isRealistic ? "14px monospace" : "italic 16px 'Times New Roman'";
+        ctx.fillText("x", ox2.x - 15, ox2.y - 10);
+        ctx.fillText("y", oy2.x + 10, oy2.y + 15);
+        ctx.fillText("O", oy2.x - 15, ox2.y + 15);
+        
+        // Đánh dấu số 1 trên Oy
+        let pY1 = toCanvas(0, 1);
+        ctx.fillText("1", pY1.x - 15, pY1.y + 5);
+        
+        // Đánh dấu các số nguyên trên Ox
+        for (let i = Math.ceil(X_MIN); i <= Math.floor(X_MAX); i++) {
+            if (i !== 0) {
+                let px = toCanvas(i, 0);
+                ctx.fillText(i.toString(), px.x - 5, px.y + 15);
+            }
+        }
+    }
+
+    function drawGraph() {
+        const graphColor = getCssColor('--graph-color');
+        ctx.strokeStyle = graphColor;
+        ctx.lineWidth = isRealistic ? 3 : 2;
+
+        if (isRealistic) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = graphColor;
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.beginPath();
+        let prevFloor = Math.floor(X_MIN);
+        
+        for (let x = X_MIN; x <= X_MAX; x += 0.01) {
+            let currentFloor = Math.floor(x);
+            let p = toCanvas(x, frac(x));
+            
+            // Xử lý điểm đứt gãy của hàm tuần hoàn
+            if (currentFloor !== prevFloor) {
+                ctx.moveTo(p.x, p.y); // Bắt đầu đoạn thẳng mới (không nối chéo xuống)
+                prevFloor = currentFloor;
+            } else {
+                ctx.lineTo(p.x, p.y);
+            }
+        }
+        ctx.stroke();
+
+        // Vẽ các chấm đặc (tại x nguyên, y=0) và vòng tròn rỗng (tại x nguyên, y=1) - Chuẩn SGK
+        for (let i = Math.ceil(X_MIN); i <= Math.floor(X_MAX); i++) {
+            let pBottom = toCanvas(i, 0);
+            let pTop = toCanvas(i, 1);
+            
+            // Chấm đặc (thuộc đồ thị)
+            ctx.beginPath();
+            ctx.arc(pBottom.x, pBottom.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = graphColor;
+            ctx.fill();
+
+            // Vòng tròn rỗng (không thuộc đồ thị, điểm giới hạn)
+            ctx.beginPath();
+            ctx.arc(pTop.x, pTop.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = getCssColor('--bg-panel'); // Xóa nền trong
+            ctx.fill();
+            ctx.stroke(); // Viền ngoài
+        }
+        
+        ctx.shadowBlur = 0; // Reset bóng
+    }
+
+    function drawActivePoints() {
+        let xs = [currentX - T, currentX, currentX + T];
+        const pointColor = getCssColor('--point-color');
+        
+        ctx.strokeStyle = pointColor;
+        ctx.fillStyle = pointColor;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+
+        // Đường kẻ ngang chứng minh 3 điểm có cùng tung độ
+        ctx.beginPath();
+        let pLeft = toCanvas(xs[0], frac(xs[0]));
+        let pRight = toCanvas(xs[2], frac(xs[2]));
+        ctx.moveTo(pLeft.x, pLeft.y);
+        ctx.lineTo(pRight.x, pRight.y);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset
+        
+        // Vẽ 3 điểm
+        xs.forEach((x, index) => {
+            let p = toCanvas(x, frac(x));
+            
+            // Điểm tròn
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, isRealistic ? 6 : 5, 0, Math.PI * 2);
+            ctx.fill();
+            if(!isRealistic) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // Gióng xuống Ox
+            ctx.beginPath();
+            ctx.strokeStyle = pointColor;
+            ctx.setLineDash([2, 4]);
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x, toCanvas(x, 0).y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Nhãn M, M', M''
+            let labels = ["M''", "M", "M'"];
+            ctx.fillStyle = getCssColor('--text-color');
+            ctx.font = "bold 14px Arial";
+            ctx.fillText(labels[index], p.x + 8, p.y - 10);
+        });
+    }
+
+    // --- CẬP NHẬT DỮ LIỆU ---
+    function updateData() {
+        xLabel.textContent = `x = ${currentX.toFixed(2)}`;
+        
+        let xArr = [currentX, currentX + T, currentX - T];
+        let domX = [valX, valXPlus, valXMinus];
+        let domInt = [valIntX, valIntXPlus, valIntXMinus];
+        let domFx = [valFx, valFxPlus, valFxMinus];
+
+        for(let i=0; i<3; i++) {
+            domX[i].textContent = xArr[i].toFixed(2);
+            domInt[i].textContent = Math.floor(xArr[i]);
+            domFx[i].textContent = frac(xArr[i]).toFixed(2);
+        }
+    }
+
+    function render() {
+        drawSystem();
+        drawGraph();
+        drawActivePoints();
+        updateData();
+    }
+
+    // --- ANIMATION VÀ SỰ KIỆN ---
+    function animate() {
+        if (!isPlaying) return;
+        
+        currentX += 0.015 * dir;
+        if (currentX >= 3) { dir = -1; currentX = 3; }
+        else if (currentX <= -2) { dir = 1; currentX = -2; }
+        
+        xSlider.value = currentX;
+        render();
+        animationId = requestAnimationFrame(animate);
+    }
+
+    xSlider.addEventListener('input', (e) => {
+        currentX = parseFloat(e.target.value);
+        if (isPlaying) {
+            isPlaying = false;
+            btnPlay.textContent = '▶ Chạy tự động';
+            cancelAnimationFrame(animationId);
+        }
+        render();
+    });
+
+    btnPlay.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            btnPlay.textContent = '⏸ Tạm dừng';
+            animate();
+        } else {
+            btnPlay.textContent = '▶ Chạy tự động';
+            cancelAnimationFrame(animationId);
+        }
+    });
+
+    toggleTheme.addEventListener('click', () => {
+        isRealistic = !isRealistic;
+        if (isRealistic) {
+            document.body.setAttribute('data-theme', 'realistic');
+            toggleTheme.textContent = 'Đổi giao diện: Sách giáo khoa';
+        } else {
+            document.body.setAttribute('data-theme', 'textbook');
+            toggleTheme.textContent = 'Đổi giao diện: Chân thực (Radar)';
+        }
+        setTimeout(render, 50); // Đợi CSS Variable nạp xong
+    });
+
+    // Khởi tạo
+    window.onload = render;
+
+</script>
+</body>
+</html>
+```eof

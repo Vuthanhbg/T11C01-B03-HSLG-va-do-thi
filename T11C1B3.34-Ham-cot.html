@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mô Phỏng Sự Hình Thành Đồ Thị Hàm Số y = cot(x)</title>
+    <!-- Tích hợp MathJax để hiển thị công thức Toán học chuẩn -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            /* Phong cách Sách giáo khoa (Mặc định) */
+            --bg-body: #f4f7f6;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --border-color: #dcdcdc;
+            --primary-color: #007bff;     /* Xanh dương cho vòng tròn */
+            --secondary-color: #dc3545;   /* Đỏ cho đồ thị */
+            --cot-color: #9c27b0;         /* Tím cho đoạn thẳng Cot */
+            --axis-color: #000000;
+            --grid-color: #e9ecef;
+            --trace-line: #6c757d;
+            --btn-text: #ffffff;
+            --font-main: 'Times New Roman', Times, serif;
+            --canvas-bg: #ffffff;
+            --shadow: 0 4px 8px rgba(0,0,0,0.05);
+            --asymptote-color: #ff0000;
+        }
+
+        [data-theme="realistic"] {
+            /* Phong cách Chân thực (Radar/Máy hiện sóng) */
+            --bg-body: #0d1117;
+            --bg-panel: #161b22;
+            --text-main: #c9d1d9;
+            --border-color: #30363d;
+            --primary-color: #58a6ff;     /* Xanh lơ */
+            --secondary-color: #ff7b72;   /* Hồng cam */
+            --cot-color: #d2a8ff;         /* Tím pastel sáng */
+            --axis-color: #8b949e;
+            --grid-color: rgba(48, 54, 61, 0.5);
+            --trace-line: #7ee787;
+            --btn-text: #ffffff;
+            --font-main: 'Consolas', 'Courier New', monospace;
+            --canvas-bg: #0d1117;
+            --shadow: 0 4px 15px rgba(88, 166, 255, 0.15);
+            --asymptote-color: #ff7b72;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                grid-template-columns: 7fr 3fr;
+            }
+        }
+
+        header {
+            grid-column: 1 / -1;
+            text-align: center;
+            border-bottom: 2px solid var(--cot-color);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        h1, h2, h3 { margin-top: 0; }
+        
+        .panel {
+            background-color: var(--bg-panel);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--cot-color);
+            color: var(--btn-text);
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        button:hover { opacity: 0.85; transform: translateY(-1px); }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--cot-color);
+            color: var(--cot-color);
+        }
+        [data-theme="realistic"] .btn-outline { color: var(--cot-color); }
+
+        .slider-group {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: rgba(128, 128, 128, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--cot-color);
+            cursor: pointer;
+        }
+
+        .canvas-container {
+            width: 100%;
+            background-color: var(--canvas-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 1.1em;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .data-table th { background-color: rgba(128, 128, 128, 0.1); }
+        .highlight { color: var(--cot-color); font-weight: bold; }
+        
+        .formula-box {
+            background-color: rgba(156, 39, 176, 0.05);
+            border-left: 4px solid var(--cot-color);
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .pedagogy-box {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 15px;
+            margin-top: 20px;
+        }
+        .pedagogy-box h3 { color: var(--primary-color); }
+        .pedagogy-box ol { padding-left: 15px; }
+        .pedagogy-box li { margin-bottom: 10px; }
+    </style>
+</head>
+<body data-theme="textbook">
+
+<div class="container">
+    <header>
+        <h1>Hình Thành Đồ Thị Hàm Số Lượng Giác</h1>
+        <div style="font-size: 1.4rem;">\( y = \cot(x) \)</div>
+    </header>
+
+    <main class="left-col">
+        <section class="panel">
+            <div class="controls">
+                <div class="btn-group">
+                    <button id="btnPlay">▶ Chạy tự động</button>
+                    <button id="btnReset">⟲ Làm lại</button>
+                </div>
+                <button id="toggleTheme" class="btn-outline">Đổi giao diện: Chân thực (Radar)</button>
+            </div>
+            
+            <div class="slider-group">
+                <label for="xSlider" style="font-weight: bold; font-family: 'Segoe UI', sans-serif;">Góc \(x\) (rad):</label>
+                <!-- Tránh các điểm kỳ dị (0, pi, 2pi...) bằng cách chia nhỏ step và không cho chạm đúng giá trị -->
+                <input type="range" id="xSlider" min="0.05" max="6.23" step="0.01" value="0.05">
+                <span id="xLabel" style="min-width: 80px; font-weight: bold; text-align: right; font-family: 'Segoe UI', sans-serif;">0.02π</span>
+            </div>
+
+            <div class="canvas-container" aria-label="Mô phỏng đường tròn, trục cot và đồ thị cot">
+                <canvas id="simCanvas" width="850" height="420"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <aside class="right-col">
+        <section class="panel">
+            <h3>Bảng Giá Trị Tức Thời</h3>
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Góc quay \( x \) (rad)</strong></td>
+                        <td id="valXRad">0.05</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Góc quay (độ)</strong></td>
+                        <td id="valXDeg">3°</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Giá trị hàm \( y = \cot(x) \)</strong></td>
+                        <td id="valY" class="highlight">19.97</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="formula-box">
+                <strong>Bản chất hình học:</strong>
+                <p>Khác với hàm tang, giá trị \( \cot(x) \) được biểu diễn trên <b>trục côtang</b> (đường thẳng tiếp xúc với đường tròn tại điểm \( (0, 1) \) và song song với trục Ox).</p>
+                <p>Kéo dài bán kính OM cắt trục côtang tại điểm C. <b>Hoành độ</b> của điểm C chính là \( \cot(x) \).</p>
+                <p>Tương tự hàm cosin, ta cần dùng <b>cung tròn 90 độ</b> để "dựng đứng" đoạn hoành độ này lên trục tung, sau đó gióng sang hệ tọa độ Oxy để vẽ đồ thị.</p>
+            </div>
+        </section>
+
+        <section class="panel pedagogy-box">
+            <h3>Gợi ý sư phạm trên lớp</h3>
+            <ol>
+                <li>Trục côtang có vị trí như thế nào so với đường tròn lượng giác? Tại sao phải dùng cung nét đứt để quay đoạn thẳng trên trục này 90 độ?</li>
+                <li>Điều gì xảy ra với điểm cắt trên trục côtang khi góc \( x \) tiến gần đến \( 0 \) hoặc \( \pi \)? Giá trị của \(\cot(x)\) lúc này ra sao?</li>
+                <li>Quan sát hình dáng đồ thị \( y = \cot(x) \), em thấy nó đồng biến hay nghịch biến trên từng khoảng xác định? Khác gì so với đồ thị hàm tang?</li>
+            </ol>
+        </section>
+    </aside>
+</div>
+<!-- Phần bản quyền tác giả -->
+        <div style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px dashed #cbd5e1; color: #475569; font-size: 0.95em;">
+            &copy; Bản quyền sáng tạo số: <strong>Thầy Vũ Trung Thành - THPT Bình Giang</strong> | 📞 0979.791.802
+        </div>
+<script>
+    // --- KHỞI TẠO ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const xSlider = document.getElementById('xSlider');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnReset = document.getElementById('btnReset');
+    const toggleTheme = document.getElementById('toggleTheme');
+    
+    // UI Data Elements
+    const xLabel = document.getElementById('xLabel');
+    const valXRad = document.getElementById('valXRad');
+    const valXDeg = document.getElementById('valXDeg');
+    const valY = document.getElementById('valY');
+
+    // State Variables
+    let currentX = parseFloat(xSlider.value); // Radian
+    let isRealistic = false;
+    let isPlaying = false;
+    let animationId;
+    
+    // Math Constants
+    const PI = Math.PI;
+    const TWO_PI = 2 * PI;
+    const MIN_X = 0.05; // Xấp xỉ 0 (tránh kỳ dị)
+    const MAX_X = 6.23; // Xấp xỉ 2pi (tránh kỳ dị)
+
+    // Layout Constants cho Canvas
+    const R = 80; // Bán kính đường tròn thu nhỏ lại một chút để hiển thị trục cot dài hơn
+    const CIRCLE_CX = 120; // Tâm đường tròn X
+    const CY = 220; // Tâm Y chung cho cả đường tròn và đồ thị
+    const GRAPH_OX = 320; // Gốc tọa độ O của đồ thị
+    const X_SCALE = 50; // Pixels cho mỗi 1 radian trên trục hoành đồ thị
+    const Y_MAX = 180; // Giới hạn chiều cao hiển thị trên đồ thị để không vẽ ra ngoài canvas
+
+    function getCssColor(varName) {
+        return getComputedStyle(document.body).getPropertyValue(varName).trim();
+    }
+
+    // --- VẼ CÁC THÀNH PHẦN ---
+    function drawSystem() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const axisColor = getCssColor('--axis-color');
+        const gridColor = getCssColor('--grid-color');
+        const isTextbook = !isRealistic;
+
+        ctx.lineWidth = 1;
+
+        // 1. Vẽ Lưới (Grid) cho phần đồ thị
+        ctx.strokeStyle = gridColor;
+        ctx.beginPath();
+        // Lưới ngang (y=1, y=-1)
+        ctx.moveTo(GRAPH_OX - 20, CY - R); ctx.lineTo(canvas.width, CY - R);
+        ctx.moveTo(GRAPH_OX - 20, CY + R); ctx.lineTo(canvas.width, CY + R);
+        // Lưới dọc (các mốc pi/2, pi...)
+        for (let i = 0; i <= 4; i++) {
+            let px = GRAPH_OX + (i * PI / 2) * X_SCALE;
+            ctx.moveTo(px, CY - Y_MAX - 20); ctx.lineTo(px, CY + Y_MAX + 20);
+        }
+        ctx.stroke();
+
+        // 2. Vẽ Hệ trục tọa độ cho Đường tròn
+        ctx.strokeStyle = axisColor;
+        ctx.lineWidth = isRealistic ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.moveTo(CIRCLE_CX - Y_MAX, CY); ctx.lineTo(CIRCLE_CX + Y_MAX, CY); // Ox dài ra để cân xứng
+        ctx.moveTo(CIRCLE_CX, CY - R - 30); ctx.lineTo(CIRCLE_CX, CY + R + 30); // Oy
+        ctx.stroke();
+        
+        // Mũi tên trục đường tròn
+        ctx.fillStyle = axisColor;
+        ctx.beginPath(); ctx.moveTo(CIRCLE_CX + Y_MAX, CY); ctx.lineTo(CIRCLE_CX + Y_MAX - 10, CY - 5); ctx.lineTo(CIRCLE_CX + Y_MAX - 10, CY + 5); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(CIRCLE_CX, CY - R - 30); ctx.lineTo(CIRCLE_CX - 5, CY - R - 20); ctx.lineTo(CIRCLE_CX + 5, CY - R - 20); ctx.fill();
+
+        // 3. Vẽ Đường tròn lượng giác
+        ctx.strokeStyle = getCssColor('--primary-color');
+        ctx.lineWidth = 2;
+        if (isRealistic) { ctx.shadowBlur = 10; ctx.shadowColor = ctx.strokeStyle; }
+        ctx.beginPath();
+        ctx.arc(CIRCLE_CX, CY, R, 0, TWO_PI);
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset
+
+        // **3b. VẼ TRỤC CÔTANG (Tiếp tuyến tại y=1)**
+        const cotColor = getCssColor('--cot-color');
+        ctx.strokeStyle = cotColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Vẽ trục côtang song song với Ox, đi qua (0, 1) của đường tròn (tức là CY - R vì Y hướng xuống)
+        ctx.moveTo(CIRCLE_CX - Y_MAX, CY - R);
+        ctx.lineTo(CIRCLE_CX + Y_MAX, CY - R);
+        ctx.stroke();
+
+        // 4. Vẽ Hệ trục tọa độ cho Đồ thị
+        ctx.strokeStyle = axisColor;
+        ctx.lineWidth = isRealistic ? 1.5 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(GRAPH_OX - 20, CY); ctx.lineTo(canvas.width - 20, CY); // Trục x
+        ctx.moveTo(GRAPH_OX, CY - Y_MAX - 20); ctx.lineTo(GRAPH_OX, CY + Y_MAX + 20); // Trục y
+        ctx.stroke();
+
+        // Mũi tên trục đồ thị
+        ctx.beginPath(); ctx.moveTo(canvas.width - 20, CY); ctx.lineTo(canvas.width - 30, CY - 5); ctx.lineTo(canvas.width - 30, CY + 5); ctx.fill(); // mũi tên x
+        ctx.beginPath(); ctx.moveTo(GRAPH_OX, CY - Y_MAX - 20); ctx.lineTo(GRAPH_OX - 5, CY - Y_MAX - 10); ctx.lineTo(GRAPH_OX + 5, CY - Y_MAX - 10); ctx.fill(); // mũi tên y
+
+        // 5. Nhãn văn bản
+        ctx.font = isTextbook ? "italic 16px 'Times New Roman'" : "14px monospace";
+        ctx.fillStyle = isTextbook ? "#000000" : axisColor; 
+        
+        // Nhãn đường tròn
+        ctx.fillText("O", CIRCLE_CX - 15, CY + 15);
+        ctx.fillStyle = cotColor;
+        ctx.fontWeight = "bold";
+        ctx.fillText("trục cot", CIRCLE_CX + Y_MAX - 40, CY - R - 10); 
+        ctx.fillStyle = isTextbook ? "#000000" : axisColor;
+        
+        // Nhãn đồ thị
+        ctx.fillStyle = isTextbook ? getCssColor('--secondary-color') : axisColor;
+        ctx.fillText("O", GRAPH_OX + 5, CY + 15);
+        ctx.fillText("x", canvas.width - 25, CY + 20);
+        ctx.fillText("y", GRAPH_OX + 10, CY - Y_MAX - 5);
+        ctx.fillText("1", GRAPH_OX - 15, CY - R + 5);
+        ctx.fillText("-1", GRAPH_OX - 20, CY + R + 5);
+        ctx.fillStyle = isTextbook ? "#000000" : axisColor;
+
+        // Đánh dấu các mốc Pi trên trục hoành đồ thị và vẽ **Đường tiệm cận**
+        const asymptoteColor = getCssColor('--asymptote-color');
+        const piLabels = {
+            "1": "π/2",
+            "2": "π",
+            "3": "3π/2",
+            "4": "2π"
+        };
+        ctx.textAlign = "center";
+        
+        // Vẽ trục tung của đồ thị làm tiệm cận (x=0)
+        ctx.beginPath();
+        ctx.strokeStyle = asymptoteColor;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]); // Nét đứt
+        ctx.moveTo(GRAPH_OX, CY - Y_MAX);
+        ctx.lineTo(GRAPH_OX, CY + Y_MAX);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        for (let i = 1; i <= 4; i++) {
+            let px = GRAPH_OX + (i * PI / 2) * X_SCALE;
+            
+            // Vẽ tiệm cận đứng tại các điểm nguyên lần pi (i=2, 4)
+            if (i % 2 === 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = asymptoteColor;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]); // Nét đứt
+                ctx.moveTo(px, CY - Y_MAX);
+                ctx.lineTo(px, CY + Y_MAX);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset
+                ctx.fillStyle = asymptoteColor;
+            } else {
+                ctx.fillStyle = isTextbook ? "#000000" : axisColor;
+            }
+
+            ctx.beginPath();
+            ctx.strokeStyle = isTextbook ? "#000000" : axisColor;
+            ctx.moveTo(px, CY - 5); ctx.lineTo(px, CY + 5);
+            ctx.stroke();
+            if (piLabels[i.toString()]) {
+                ctx.fillText(piLabels[i.toString()], px, CY + 25);
+            }
+        }
+        ctx.textAlign = "left"; // reset
+    }
+
+    function drawDynamicElements() {
+        const traceColor = getCssColor('--trace-line');
+        const graphColor = getCssColor('--secondary-color');
+        const cotColor = getCssColor('--cot-color');
+        
+        // Tính toán tọa độ hiện tại
+        let cotVal = 1 / Math.tan(currentX);
+        let cosVal = Math.cos(currentX);
+        let sinVal = Math.sin(currentX);
+        
+        let circleX = CIRCLE_CX + R * cosVal;
+        let circleY = CY - R * sinVal; // Canvas Y hướng xuống
+        
+        // Điểm cắt trên trục côtang (y = 1 -> CY - R, x = R * cot(x))
+        let cotX = CIRCLE_CX + R * cotVal;
+        let cotY = CY - R; 
+        
+        let graphX = GRAPH_OX + currentX * X_SCALE;
+        let graphY = CY - R * cotVal;
+
+        // Xử lý không vẽ khi cot(x) quá lớn (tiến đến vô cùng)
+        let isOutOfBounds = Math.abs(R * cotVal) > Y_MAX * 1.5;
+
+        // 1. Vẽ bán kính quay và kéo dài cắt trục côtang
+        ctx.strokeStyle = traceColor;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(CIRCLE_CX, CY);
+        
+        if (!isOutOfBounds) {
+            // Nối từ tâm O đi qua M đến C (điểm cắt trên trục cot)
+            ctx.lineTo(cotX, cotY); 
+        } else {
+            // Nếu vô cùng, chỉ vẽ hướng ra ngoài
+            let extendFactor = 2;
+            ctx.lineTo(CIRCLE_CX + extendFactor * R * cosVal, CY - extendFactor * R * sinVal);
+        }
+        ctx.stroke();
+        
+        // Cung thể hiện góc
+        ctx.beginPath();
+        ctx.arc(CIRCLE_CX, CY, 25, 0, -currentX, true);
+        ctx.stroke();
+
+        // 2. TÔ ĐẬM ĐOẠN COT TRÊN TRỤC CÔTANG
+        if (!isOutOfBounds) {
+            ctx.strokeStyle = cotColor;
+            ctx.lineWidth = isRealistic ? 4 : 3;
+            ctx.beginPath();
+            ctx.moveTo(CIRCLE_CX, cotY); // Từ trục tung
+            ctx.lineTo(cotX, cotY); // Sang điểm C
+            ctx.stroke();
+        }
+        
+        // 3. VẼ CUNG CHUYỂN ĐỔI (ÁNH XẠ TỪ TRỤC HOÀNH (cot) LÊN TRỤC TUNG)
+        // Vì hoành độ điểm C chính là cot(x), ta cần quay đoạn hoành độ này 90 độ
+        // tâm O(CIRCLE_CX, CY)
+        let absCot = Math.abs(cotVal);
+        if (!isOutOfBounds && absCot > 0.05) {
+            ctx.beginPath();
+            ctx.strokeStyle = cotColor;
+            ctx.setLineDash([4, 4]); // Nét đứt cho cung chuyển đổi
+            ctx.lineWidth = 1.5;
+            if (cotVal > 0) {
+                // Quay từ phải (0 rad) lên trên (-PI/2 trong canvas)
+                ctx.arc(CIRCLE_CX, CY, R * absCot, 0, -PI/2, true);
+            } else {
+                // Quay từ trái (PI rad) xuống dưới (PI/2 trong canvas)
+                ctx.arc(CIRCLE_CX, CY, R * absCot, PI, PI/2, true);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
+        }
+
+        // Tô đậm đoạn Cot sau khi đã dựng đứng trên trục Oy của đường tròn
+        if (!isOutOfBounds) {
+            ctx.beginPath();
+            ctx.strokeStyle = cotColor;
+            ctx.lineWidth = isRealistic ? 4 : 3;
+            ctx.moveTo(CIRCLE_CX, CY);
+            ctx.lineTo(CIRCLE_CX, graphY); // graphY chính xác là tọa độ sau khi quay
+            ctx.stroke();
+        }
+
+        // 4. Vẽ đồ thị hàm cot (Cần cẩn thận chia nhỏ để không nối qua tiệm cận)
+        ctx.strokeStyle = graphColor;
+        ctx.lineWidth = isRealistic ? 3 : 2.5;
+        if (isRealistic) { ctx.shadowBlur = 8; ctx.shadowColor = graphColor; }
+        
+        ctx.beginPath();
+        
+        let isDrawing = false;
+        
+        // Vẽ toàn bộ đồ thị từ MIN_X đến currentX
+        for (let a = MIN_X; a <= currentX; a += 0.02) {
+            let px = GRAPH_OX + a * X_SCALE;
+            let val = 1 / Math.tan(a);
+            let py = CY - R * val;
+            
+            // Nếu điểm nằm ngoài vùng hiển thị (gần tiệm cận) -> Ngắt nét vẽ
+            if (Math.abs(R * val) > Y_MAX) {
+                isDrawing = false;
+                continue;
+            }
+            
+            if (!isDrawing) {
+                ctx.moveTo(px, py);
+                isDrawing = true;
+            } else {
+                ctx.lineTo(px, py);
+            }
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset
+
+        // 5. Đường GIÓNG (Vết chỉ) sang Đồ thị
+        if (!isOutOfBounds) {
+            ctx.strokeStyle = traceColor;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            
+            // Gióng từ C xuống trục tung của đường tròn (sau khi đã quay)
+            ctx.moveTo(cotX, cotY);
+            ctx.lineTo(CIRCLE_CX, graphY);
+            
+            // Gióng từ Oy vòng tròn sang P trên đồ thị
+            ctx.moveTo(CIRCLE_CX, graphY); 
+            ctx.lineTo(graphX, graphY);
+            
+            // Gióng vuông góc xuống trục hoành đồ thị
+            ctx.moveTo(graphX, graphY);    
+            ctx.lineTo(graphX, CY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // 6. Vẽ các điểm Chấm
+        function drawDot(x, y, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, isRealistic ? 6 : 5, 0, TWO_PI);
+            ctx.fillStyle = color;
+            ctx.fill();
+            if (!isRealistic) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+        
+        drawDot(circleX, circleY, getCssColor('--primary-color')); // Điểm M
+        
+        if (!isOutOfBounds) {
+            drawDot(cotX, cotY, cotColor); // Điểm C trên trục cot
+            drawDot(CIRCLE_CX, graphY, cotColor); // Điểm trên trục tung sau khi quay
+            drawDot(graphX, graphY, graphColor); // Điểm P trên đồ thị
+            
+            // Nhãn điểm C
+            ctx.fillStyle = getCssColor('--text-main');
+            ctx.font = "bold 16px Arial";
+            ctx.fillText("C", cotX + 5, cotY - 10);
+        }
+
+        // Nhãn điểm M
+        ctx.fillStyle = getCssColor('--text-main');
+        ctx.font = "bold 16px Arial";
+        ctx.fillText("M", circleX + 10, circleY + 5);
+    }
+
+    // --- CẬP NHẬT DỮ LIỆU ---
+    function updateData() {
+        // Cập nhật Slider
+        let piValue = currentX / PI;
+        xLabel.textContent = piValue.toFixed(2) + 'π';
+        
+        // Cập nhật Bảng
+        valXRad.textContent = currentX.toFixed(2);
+        let degree = (currentX * 180 / PI).toFixed(0);
+        valXDeg.textContent = degree + "°";
+        
+        // Tránh số quá lớn (hiển thị vô cực)
+        let cotValue = 1 / Math.tan(currentX);
+        let displayCot = "∞";
+        if (Math.abs(cotValue) < 100) {
+            displayCot = cotValue.toFixed(2);
+            if (displayCot === "-0.00") displayCot = "0.00"; 
+        } else if (cotValue < 0) {
+             displayCot = "-∞";
+        }
+        
+        valY.textContent = displayCot;
+    }
+
+    function render() {
+        drawSystem();
+        drawDynamicElements();
+        updateData();
+    }
+
+    // --- ANIMATION VÀ SỰ KIỆN ---
+    function animate() {
+        if (!isPlaying) return;
+        
+        currentX += 0.02; // Tốc độ
+        
+        // Xử lý nhảy qua điểm tiệm cận để không bị lỗi nét nối
+        // Pi ≈ 3.14, 2Pi ≈ 6.28
+        let isNearAsymptote = false;
+        let asymptotes = [PI, TWO_PI];
+        for (let asym of asymptotes) {
+            if (Math.abs(currentX - asym) < 0.05) {
+                currentX = asym + 0.05; // Nhảy qua điểm kỳ dị
+            }
+        }
+        
+        if (currentX >= MAX_X) {
+            currentX = MAX_X;
+            isPlaying = false;
+            btnPlay.textContent = '▶ Chạy tự động';
+        }
+        
+        xSlider.value = currentX;
+        render();
+        
+        if (isPlaying) {
+            animationId = requestAnimationFrame(animate);
+        }
+    }
+
+    xSlider.addEventListener('input', (e) => {
+        currentX = parseFloat(e.target.value);
+        if (isPlaying) {
+            isPlaying = false;
+            btnPlay.textContent = '▶ Chạy tự động';
+            cancelAnimationFrame(animationId);
+        }
+        render();
+    });
+
+    btnPlay.addEventListener('click', () => {
+        if (currentX >= MAX_X) {
+            currentX = MIN_X; 
+            xSlider.value = MIN_X;
+        }
+        
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            btnPlay.textContent = '⏸ Tạm dừng';
+            animate();
+        } else {
+            btnPlay.textContent = '▶ Chạy tự động';
+            cancelAnimationFrame(animationId);
+        }
+    });
+
+    btnReset.addEventListener('click', () => {
+        isPlaying = false;
+        btnPlay.textContent = '▶ Chạy tự động';
+        cancelAnimationFrame(animationId);
+        currentX = MIN_X;
+        xSlider.value = MIN_X;
+        render();
+    });
+
+    toggleTheme.addEventListener('click', () => {
+        isRealistic = !isRealistic;
+        if (isRealistic) {
+            document.body.setAttribute('data-theme', 'realistic');
+            toggleTheme.textContent = 'Đổi giao diện: Sách giáo khoa';
+        } else {
+            document.body.setAttribute('data-theme', 'textbook');
+            toggleTheme.textContent = 'Đổi giao diện: Chân thực (Radar)';
+        }
+        setTimeout(render, 50); 
+    });
+
+    // Khởi động
+    window.onload = () => {
+        render();
+    };
+
+</script>
+</body>
+</html>
+```eof
