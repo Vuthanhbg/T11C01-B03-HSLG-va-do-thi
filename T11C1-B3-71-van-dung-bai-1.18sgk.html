@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mô Phỏng Sóng Biển - Bài 1.18</title>
+    
+    <!-- Cấu hình MathJax đặt TRƯỚC thư viện để sửa lỗi hiển thị công thức -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            /* Textbook Style (Default) */
+            --bg-body: #f8f9fa;
+            --bg-panel: #ffffff;
+            --text-main: #212529;
+            --border-color: #dee2e6;
+            --primary-color: #0d6efd;
+            --graph-line: #0056b3;
+            --grid-color: #e9ecef;
+            --axis-color: #000000;
+            --btn-text: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.05);
+            --highlight: #dc3545; /* Red for emphasis */
+            --font-family: 'Times New Roman', Times, serif;
+            --canvas-bg: #ffffff;
+            --water-color: rgba(13, 110, 253, 0.2);
+            --post-color: #8B4513;
+        }
+
+        [data-theme="realistic"] {
+            /* Realistic Style */
+            --bg-body: #87CEEB; /* Sky blue background */
+            --bg-panel: rgba(255, 255, 255, 0.9);
+            --text-main: #333333;
+            --border-color: #b0c4de;
+            --primary-color: #1e90ff;
+            --graph-line: #00008b;
+            --grid-color: rgba(0, 0, 0, 0.1);
+            --axis-color: #333333;
+            --btn-text: #ffffff;
+            --shadow: 0 8px 16px rgba(0,0,0,0.2);
+            --highlight: #ff4500;
+            --font-family: 'Segoe UI', Arial, sans-serif;
+            --canvas-bg: transparent; /* Let the sky show through */
+            --water-color: rgba(0, 105, 148, 0.8); /* Deep water color */
+            --post-color: #5C4033; /* Dark brown post */
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* --- TOÀN MÀN HÌNH --- */
+        :fullscreen {
+            background-color: var(--bg-body);
+            overflow-y: auto;
+        }
+        :fullscreen .container {
+            max-width: 100%;
+            margin-top: 10px;
+            box-shadow: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                grid-template-columns: 2fr 1fr;
+            }
+            .header-full {
+                grid-column: 1 / -1;
+            }
+        }
+
+        header {
+            text-align: center;
+            background-color: var(--bg-panel);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 15px;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        h1, h2, h3 { margin-top: 0; }
+        
+        .panel {
+            background-color: var(--bg-panel);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--primary-color);
+            color: var(--btn-text);
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        button:hover { opacity: 0.85; transform: translateY(-1px); }
+        
+        button.btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        [data-theme="realistic"] button.btn-outline {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        button.btn-purple { background-color: #8b5cf6; color: white; }
+        button.btn-danger { background-color: #dc3545; color: white; }
+
+        .slider-group {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: rgba(128, 128, 128, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .canvas-container {
+            width: 100%;
+            background-color: var(--canvas-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Decorative elements for realistic mode */
+        [data-theme="realistic"] .canvas-container::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50px;
+            width: 60px;
+            height: 60px;
+            background: #FFD700;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #FFD700;
+            z-index: 0;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            z-index: 1; /* Above decorative background */
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .data-table th {
+            background-color: rgba(13, 110, 253, 0.1);
+            font-weight: bold;
+        }
+
+        .formula-box {
+            background-color: rgba(13, 110, 253, 0.05);
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .highlight-text { font-weight: bold; color: var(--highlight); }
+
+        .pedagogy h3 {
+            color: #d9534f;
+            border-bottom: 1px dashed #d9534f;
+            padding-bottom: 5px;
+        }
+        .pedagogy ol { padding-left: 20px; }
+        .pedagogy li { margin-bottom: 10px; }
+        
+        /* Sun/Clouds for realistic mode */
+        .cloud {
+            display: none;
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            opacity: 0.8;
+            z-index: 0;
+        }
+        [data-theme="realistic"] .cloud { display: block; }
+        
+        .exit-wrapper { text-align: center; margin-top: 30px; }
+    </style>
+</head>
+<body data-theme="textbook">
+
+<div class="container" id="main-container">
+    <header class="header-full">
+        <h1>Bài 1.18: Mô Hình Hóa Sóng Biển</h1>
+        <h2>\( h(t) = 90\cos\left(\frac{\pi}{10}t\right) \) (cm)</h2>
+    </header>
+
+    <main class="left-col">
+        <section class="panel controls" aria-label="Điều khiển">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%; justify-content: space-between; margin-bottom: 10px;">
+                <button id="styleToggle" class="btn-outline">Chuyển sang: Phong cách Chân thực</button>
+                <button id="fullscreenBtn" class="btn-purple">Toàn màn hình</button>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%;">
+                <button id="playPauseBtn">▶ Chạy / Tạm dừng</button>
+                <button id="resetBtn">⟲ Làm lại</button>
+                <button id="toggleSolutionBtn" class="btn-purple">Ẩn lời giải</button>
+            </div>
+            
+            <div class="slider-group" style="margin-top: 15px;">
+                <label for="timeSlider" style="font-weight: bold;">Thời gian \( t \) (giây):</label>
+                <input type="range" id="timeSlider" min="0" max="40" step="0.1" value="0">
+                <span id="timeDisplay" style="min-width: 60px; font-weight: bold;">0.0 s</span>
+            </div>
+        </section>
+
+        <section class="panel canvas-container" aria-label="Mô phỏng đồ thị sóng biển">
+            <!-- Decorative clouds for realistic mode -->
+            <div class="cloud" style="width: 100px; height: 30px; top: 40px; left: 200px;"></div>
+            <div class="cloud" style="width: 80px; height: 25px; top: 70px; left: 500px;"></div>
+            <div class="cloud" style="width: 120px; height: 40px; top: 30px; right: 100px;"></div>
+            
+            <canvas id="simCanvas" width="800" height="400"></canvas>
+        </section>
+    </main>
+
+    <aside class="right-col">
+        <section class="panel">
+            <h3>Phân tích bài toán</h3>
+            <div id="solutionBox" style="transition: opacity 0.3s;">
+                <div class="formula-box">
+                    <p><strong>Dạng tổng quát:</strong> \( h(t) = A\cos(\omega t + \varphi) \)</p>
+                    <p>Từ phương trình \( h(t) = 90\cos\left(\frac{\pi}{10}t\right) \), ta có:</p>
+                    <ul style="padding-left: 20px;">
+                        <li>Biên độ: \( A = 90 \) (cm)</li>
+                        <li>Tần số góc: \( \omega = \frac{\pi}{10} \) (rad/s)</li>
+                    </ul>
+                </div>
+
+                <div class="formula-box" style="border-left-color: var(--highlight);">
+                    <p><strong>a) Chu kì của sóng:</strong></p>
+                    <p>\( T = \frac{2\pi}{\omega} = \frac{2\pi}{\frac{\pi}{10}} = \) <span class="highlight-text">20 (giây)</span></p>
+                    
+                    <p><strong>b) Chiều cao của sóng:</strong></p>
+                    <p>Đỉnh sóng: \( +A = 90 \) cm</p>
+                    <p>Đáy sóng: \( -A = -90 \) cm</p>
+                    <p>Khoảng cách: \( 90 - (-90) = \) <span class="highlight-text">180 (cm)</span></p>
+                </div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th colspan="2">Trạng thái tại \( t \) = <span id="valT">0.0</span> s</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Độ cao mực nước \( h(t) \)</strong></td>
+                        <td class="highlight-text"><span id="valH">90.0</span> cm</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="panel pedagogy">
+            <h3>Gợi ý sư phạm trên lớp</h3>
+            <ol>
+                <li>Nhìn vào đồ thị (chế độ Sách giáo khoa), hãy xác định khoảng thời gian ngắn nhất để mực nước lặp lại trạng thái cao nhất (từ đỉnh này sang đỉnh kia). Khoảng thời gian đó liên hệ thế nào với kết quả tính chu kì ở câu a?</li>
+                <li>Chiều cao của sóng (từ đáy đến đỉnh) gấp mấy lần biên độ của hàm số côsin?</li>
+                <li>Mực nước biển trung bình (vị trí cân bằng) nằm ở độ cao nào trên đồ thị? (Gợi ý: Trục hoành).</li>
+            </ol>
+        </section>
+    </aside>
+</div>
+
+<div class="exit-wrapper">
+    <button id="exitBtn" class="btn-danger">Thoát và đóng trình duyệt</button>
+</div>
+
+<!-- Phần bản quyền tác giả -->
+<div style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px dashed #cbd5e1; color: #475569; font-size: 1em;">
+    Tác giả: <strong>Vũ Trung Thành - Tổ Toán-Tin, THPT Bình Giang, Zalo: 0979791802</strong>
+</div>
+
+<script>
+    // --- INITIALIZATION ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const timeSlider = document.getElementById('timeSlider');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const styleToggle = document.getElementById('styleToggle');
+    
+    const toggleSolutionBtn = document.getElementById('toggleSolutionBtn');
+    const solutionBox = document.getElementById('solutionBox');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const exitBtn = document.getElementById('exitBtn');
+    
+    // UI Elements
+    const timeDisplay = document.getElementById('timeDisplay');
+    const valT = document.getElementById('valT');
+    const valH = document.getElementById('valH');
+
+    // State Variables
+    let currentTime = parseFloat(timeSlider.value);
+    let isPlaying = false;
+    let isSolutionVisible = true;
+    let currentTheme = 'textbook'; // 'textbook' or 'realistic'
+    let animationId;
+    let lastTimestamp = 0;
+    
+    // Physics Constants
+    const A = 90;               // Biên độ (cm)
+    const OMEGA = Math.PI / 10; // Tần số góc
+    const T = 20;               // Chu kì (s)
+    const MAX_TIME = 40;        // Hiển thị 2 chu kì
+
+    // Hàm tính độ cao
+    function getH(t) {
+        return A * Math.cos(OMEGA * t);
+    }
+
+    // Canvas Dimensions & Scaling
+    const CANVAS_W = 800;
+    const CANVAS_H = 400;
+    
+    // Graph Settings (Textbook)
+    const GRAPH_OX = 60;
+    const GRAPH_OY = 200; // Trục t nằm giữa màn hình
+    const GRAPH_W = 700;
+    const SCALE_T = GRAPH_W / MAX_TIME; // pixels per second
+    const SCALE_H = 1.2; // pixels per cm (90cm * 1.2 = 108px)
+
+    // Realistic Settings
+    const POST_X = 200; // Vị trí cái cọc
+    const WATER_BASE_Y = GRAPH_OY; // Mực nước trung bình
+
+    // Helper: Get CSS variable
+    function getCssColor(varName) {
+        return getComputedStyle(document.body).getPropertyValue(varName).trim();
+    }
+
+    // --- DRAWING: TEXTBOOK MODE ---
+    function drawTextbook() {
+        const axisColor = getCssColor('--axis-color');
+        const gridColor = getCssColor('--grid-color');
+        const graphColor = getCssColor('--graph-line');
+
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // 1. Grid Lines
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // Horizontal grids for Amplitude (+A, -A)
+        let yTop = GRAPH_OY - A * SCALE_H;
+        let yBot = GRAPH_OY + A * SCALE_H;
+        ctx.moveTo(GRAPH_OX, yTop); ctx.lineTo(GRAPH_OX + GRAPH_W, yTop);
+        ctx.moveTo(GRAPH_OX, yBot); ctx.lineTo(GRAPH_OX + GRAPH_W, yBot);
+        
+        // Vertical grids (every 5 seconds)
+        for(let t = 0; t <= MAX_TIME; t += 5) {
+            let px = GRAPH_OX + t * SCALE_T;
+            ctx.moveTo(px, yTop - 10); ctx.lineTo(px, yBot + 10);
+        }
+        ctx.stroke();
+
+        // 2. Axes
+        ctx.strokeStyle = axisColor;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        // t-axis (horizontal)
+        ctx.moveTo(GRAPH_OX - 10, GRAPH_OY); ctx.lineTo(GRAPH_OX + GRAPH_W + 20, GRAPH_OY);
+        // h-axis (vertical)
+        ctx.moveTo(GRAPH_OX, yBot + 30); ctx.lineTo(GRAPH_OX, yTop - 40);
+        ctx.stroke();
+        
+        // Arrows
+        ctx.fillStyle = axisColor;
+        ctx.beginPath(); ctx.moveTo(GRAPH_OX + GRAPH_W + 20, GRAPH_OY); ctx.lineTo(GRAPH_OX + GRAPH_W + 10, GRAPH_OY - 5); ctx.lineTo(GRAPH_OX + GRAPH_W + 10, GRAPH_OY + 5); ctx.fill(); // t-arrow
+        ctx.beginPath(); ctx.moveTo(GRAPH_OX, yTop - 40); ctx.lineTo(GRAPH_OX - 5, yTop - 30); ctx.lineTo(GRAPH_OX + 5, yTop - 30); ctx.fill(); // h-arrow
+
+        // Labels
+        ctx.font = "italic 16px 'Times New Roman'";
+        ctx.fillText("t (s)", GRAPH_OX + GRAPH_W + 5, GRAPH_OY + 20);
+        ctx.fillText("h (cm)", GRAPH_OX + 10, yTop - 30);
+        ctx.fillText("O", GRAPH_OX - 20, GRAPH_OY + 15);
+        ctx.fillText("90", GRAPH_OX - 25, yTop + 5);
+        ctx.fillText("-90", GRAPH_OX - 30, yBot + 5);
+
+        // Time ticks
+        ctx.font = "14px 'Times New Roman'";
+        ctx.textAlign = "center";
+        for(let t = 5; t <= MAX_TIME; t += 5) {
+            ctx.fillText(t, GRAPH_OX + t * SCALE_T, GRAPH_OY + 20);
+        }
+        ctx.textAlign = "left";
+
+        // Mark Period and Wave Height
+        ctx.strokeStyle = getCssColor('--highlight');
+        ctx.setLineDash([4, 4]);
+        
+        // Mark T (Period) from peak to peak (t=0 to t=20)
+        let peak1X = GRAPH_OX;
+        let peak2X = GRAPH_OX + 20 * SCALE_T;
+        ctx.beginPath();
+        ctx.moveTo(peak1X, yTop - 15); ctx.lineTo(peak1X, yTop - 30);
+        ctx.moveTo(peak2X, yTop - 15); ctx.lineTo(peak2X, yTop - 30);
+        ctx.moveTo(peak1X, yTop - 22); ctx.lineTo(peak2X, yTop - 22);
+        ctx.stroke();
+        ctx.fillStyle = getCssColor('--highlight');
+        ctx.textAlign = "center";
+        ctx.fillText("T = 20s", peak1X + (peak2X - peak1X)/2, yTop - 30);
+        ctx.textAlign = "left";
+
+        // Mark Wave Height (from peak to trough at t=10)
+        let troughX = GRAPH_OX + 10 * SCALE_T;
+        ctx.beginPath();
+        ctx.moveTo(troughX, yTop); ctx.lineTo(troughX, yBot);
+        ctx.stroke();
+        // Arrow heads for height
+        ctx.beginPath(); ctx.moveTo(troughX, yTop); ctx.lineTo(troughX-4, yTop+8); ctx.lineTo(troughX+4, yTop+8); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(troughX, yBot); ctx.lineTo(troughX-4, yBot-8); ctx.lineTo(troughX+4, yBot-8); ctx.fill();
+        ctx.fillText("Chiều cao", troughX + 10, GRAPH_OY - 10);
+        ctx.fillText("sóng = 180cm", troughX + 10, GRAPH_OY + 10);
+        ctx.setLineDash([]);
+
+        // 3. Draw Graph
+        ctx.strokeStyle = graphColor;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        
+        // Draw the path for current time
+        let currentPx = GRAPH_OX + currentTime * SCALE_T;
+        let currentPy = GRAPH_OY - getH(currentTime) * SCALE_H;
+        
+        // Faded full graph
+        ctx.strokeStyle = "rgba(0, 86, 179, 0.3)";
+        ctx.beginPath();
+        ctx.moveTo(GRAPH_OX, GRAPH_OY - getH(0) * SCALE_H);
+        for(let t = 0; t <= MAX_TIME; t += 0.5) {
+            ctx.lineTo(GRAPH_OX + t * SCALE_T, GRAPH_OY - getH(t) * SCALE_H);
+        }
+        ctx.stroke();
+
+        // Solid graph up to current time
+        ctx.strokeStyle = graphColor;
+        ctx.beginPath();
+        ctx.moveTo(GRAPH_OX, GRAPH_OY - getH(0) * SCALE_H);
+        for(let t = 0; t <= currentTime; t += 0.5) {
+            ctx.lineTo(GRAPH_OX + t * SCALE_T, GRAPH_OY - getH(t) * SCALE_H);
+        }
+        ctx.stroke();
+
+        // 4. Current Point
+        ctx.beginPath();
+        ctx.arc(currentPx, currentPy, 6, 0, 2 * Math.PI);
+        ctx.fillStyle = graphColor;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Projection lines
+        ctx.strokeStyle = axisColor;
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(currentPx, currentPy); ctx.lineTo(currentPx, GRAPH_OY);
+        ctx.moveTo(currentPx, currentPy); ctx.lineTo(GRAPH_OX, currentPy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // --- DRAWING: REALISTIC MODE ---
+    function drawRealistic() {
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+        const waterColor = getCssColor('--water-color');
+        const postColor = getCssColor('--post-color');
+        
+        const lambda = 400; // pixels
+        const k = 2 * Math.PI / lambda;
+        
+        // 1. Draw the Post (Cọc ngoài khơi)
+        // Background part of post
+        ctx.fillStyle = postColor;
+        ctx.fillRect(POST_X - 15, GRAPH_OY - 150, 30, 300); // Taller post
+        
+        // Post details (wood texture lines)
+        ctx.strokeStyle = '#3E2723';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(POST_X - 5, GRAPH_OY - 140); ctx.lineTo(POST_X - 5, GRAPH_OY + 140);
+        ctx.moveTo(POST_X + 8, GRAPH_OY - 130); ctx.lineTo(POST_X + 8, GRAPH_OY + 130);
+        ctx.stroke();
+        
+        // Mark average sea level on post
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(POST_X - 25, WATER_BASE_Y); ctx.lineTo(POST_X + 25, WATER_BASE_Y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px sans-serif';
+        ctx.fillText("Mực nước TB (0)", POST_X + 30, WATER_BASE_Y + 5);
+
+        // 2. Draw the Water Wave
+        let currentH_cm = getH(currentTime);
+        let waterLevelAtPostY = WATER_BASE_Y - currentH_cm * SCALE_H;
+
+        ctx.fillStyle = waterColor;
+        ctx.beginPath();
+        // Start from bottom left
+        ctx.moveTo(0, CANVAS_H);
+        
+        for (let x = 0; x <= CANVAS_W; x += 5) {
+            let wave_y_cm = A * Math.cos(k * (x - POST_X) - OMEGA * currentTime);
+            let canvas_y = WATER_BASE_Y - wave_y_cm * SCALE_H;
+            ctx.lineTo(x, canvas_y);
+        }
+        
+        // Complete the path to fill bottom
+        ctx.lineTo(CANVAS_W, CANVAS_H);
+        ctx.closePath();
+        ctx.fill();
+
+        // Add a darker wave layer behind for depth
+        ctx.fillStyle = "rgba(0, 70, 100, 0.5)";
+        ctx.beginPath();
+        ctx.moveTo(0, CANVAS_H);
+        for (let x = 0; x <= CANVAS_W; x += 10) {
+            let wave_y_cm = (A * 0.8) * Math.cos(k * (x - POST_X + 50) - OMEGA * currentTime * 1.2);
+            let canvas_y = WATER_BASE_Y - wave_y_cm * SCALE_H + 20; // Lower slightly
+            ctx.lineTo(x, canvas_y);
+        }
+        ctx.lineTo(CANVAS_W, CANVAS_H);
+        ctx.closePath();
+        ctx.fill();
+
+        // 3. Mark current height on the post
+        ctx.fillStyle = '#ff4500';
+        ctx.beginPath();
+        ctx.arc(POST_X, waterLevelAtPostY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Line indicating height
+        ctx.strokeStyle = '#ff4500';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(POST_X - 40, waterLevelAtPostY);
+        ctx.lineTo(POST_X, waterLevelAtPostY);
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px sans-serif';
+        // Background for text visibility
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(POST_X - 110, waterLevelAtPostY - 10, 60, 20);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(currentH_cm.toFixed(1) + " cm", POST_X - 105, waterLevelAtPostY + 5);
+    }
+
+    // --- UPDATE DATA ---
+    function updateData() {
+        timeDisplay.textContent = currentTime.toFixed(1) + ' s';
+        valT.textContent = currentTime.toFixed(1);
+        
+        let hVal = getH(currentTime);
+        valH.textContent = hVal.toFixed(1);
+    }
+
+    // Main Render Function
+    function render() {
+        if (currentTheme === 'textbook') {
+            drawTextbook();
+        } else {
+            drawRealistic();
+        }
+        updateData();
+    }
+
+    // --- ANIMATION LOOP ---
+    function step(timestamp) {
+        if (!isPlaying) return;
+        
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        let deltaTime = (timestamp - lastTimestamp) / 1000; // seconds
+        
+        // Real time simulation, but we might want to speed it up slightly if T=20s is too slow to watch.
+        currentTime += deltaTime * 2; // Tăng tốc độ để hiển thị nhanh hơn
+        
+        if (currentTime >= MAX_TIME) {
+            currentTime = MAX_TIME;
+            isPlaying = false;
+            playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+        }
+        
+        timeSlider.value = currentTime;
+        render();
+        
+        lastTimestamp = timestamp;
+        if (isPlaying) {
+            animationId = requestAnimationFrame(step);
+        }
+    }
+
+    // --- EVENT LISTENERS ---
+    timeSlider.addEventListener('input', (e) => {
+        currentTime = parseFloat(e.target.value);
+        if (isPlaying) {
+            isPlaying = false;
+            playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+            cancelAnimationFrame(animationId);
+            lastTimestamp = 0;
+        }
+        render();
+    });
+
+    playPauseBtn.addEventListener('click', () => {
+        if (currentTime >= MAX_TIME) {
+            currentTime = 0;
+            timeSlider.value = 0;
+        }
+        
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            playPauseBtn.textContent = '⏸ Tạm dừng';
+            lastTimestamp = 0;
+            requestAnimationFrame(step);
+        } else {
+            playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+            cancelAnimationFrame(animationId);
+            lastTimestamp = 0;
+        }
+    });
+
+    resetBtn.addEventListener('click', () => {
+        isPlaying = false;
+        playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+        cancelAnimationFrame(animationId);
+        lastTimestamp = 0;
+        currentTime = 0;
+        timeSlider.value = 0;
+        render();
+    });
+
+    styleToggle.addEventListener('click', () => {
+        if (currentTheme === 'textbook') {
+            currentTheme = 'realistic';
+            document.body.setAttribute('data-theme', 'realistic');
+            styleToggle.textContent = 'Chuyển sang: Phong cách Sách giáo khoa';
+        } else {
+            currentTheme = 'textbook';
+            document.body.setAttribute('data-theme', 'textbook');
+            styleToggle.textContent = 'Chuyển sang: Phong cách Chân thực';
+        }
+        setTimeout(render, 50); // Wait for CSS vars to update
+    });
+
+    // Sự kiện Ẩn/Hiện Lời giải
+    toggleSolutionBtn.addEventListener('click', () => {
+        isSolutionVisible = !isSolutionVisible;
+        if(isSolutionVisible) {
+            solutionBox.style.display = 'block';
+            toggleSolutionBtn.textContent = 'Ẩn lời giải';
+        } else {
+            solutionBox.style.display = 'none';
+            toggleSolutionBtn.textContent = 'Hiện lời giải';
+        }
+    });
+
+    // Sự kiện Toàn màn hình[cite: 11, 14]
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`Không thể mở toàn màn hình: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = 'Thu nhỏ';
+        } else {
+            fullscreenBtn.textContent = 'Toàn màn hình';
+        }
+        setTimeout(render, 100); 
+    });
+
+    // Sự kiện Thoát và Đóng trình duyệt[cite: 11, 12]
+    exitBtn.addEventListener('click', () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+        if (confirm("Bạn có chắc chắn muốn thoát mô phỏng và đóng cửa sổ này không?")) {
+            window.close();
+            alert("Tác giả: Vũ Trung Thành - Tổ Toán-Tin, THPT Bình Giang, Zalo: 0979791802\n(Nếu trình duyệt không tự đóng, vui lòng đóng tab thủ công).");
+        }
+    });
+
+    // Initial render
+    window.onload = render;
+
+</script>
+</body>
+</html>

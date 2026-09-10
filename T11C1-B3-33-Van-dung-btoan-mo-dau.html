@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mô Phỏng: Vận Tốc Luồng Khí Hô Hấp</title>
+    <!-- Tích hợp MathJax để hiển thị công thức Toán học sắc nét -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg-color: #f5f6fa;
+            --text-color: #2c3e50;
+            --inhale: #27ae60; /* Hít vào (v > 0) */
+            --exhale: #e74c3c; /* Thở ra (v < 0) */
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 1.5rem; }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background: #ecf0f1;
+            justify-content: center;
+            align-items: center;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 0.95rem;
+        }
+        button:hover { background: #2980b9; }
+        button.danger { background: #e74c3c; }
+        button.danger:hover { background: #c0392b; }
+        button.success { background: #27ae60; }
+        button.success:hover { background: #219653; }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 6px;
+        }
+        .simulation {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: #fff;
+            width: 100%;
+        }
+        canvas {
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            max-width: 100%;
+            background: #fff;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+        .info-panel {
+            padding: 0 20px;
+            background: #fafafa;
+        }
+        
+        #solutionBox {
+            display: none; /* Ẩn mặc định */
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin: 15px 0;
+            line-height: 1.8;
+            animation: fadeIn 0.3s ease-in-out;
+            font-size: 1.02rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pedagogy {
+            padding: 20px;
+            background: #e8f4f8;
+            border-top: 1px solid #d1e8f0;
+            margin-top: 15px;
+        }
+        .pedagogy ol li { margin-bottom: 8px; }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; align-items: stretch; }
+            canvas { height: 300px; }
+            .slider-container { justify-content: space-between; }
+        }
+    </style>
+</head>
+<body id="main-body">
+
+<div class="container" id="app-container">
+    <header>
+        <h1>Mô Phỏng: Vận Tốc Luồng Khí Hô Hấp Trạng Thái Nghỉ</h1>
+    </header>
+
+    <section class="controls" aria-label="Điều khiển">
+        <button id="styleToggle">Chuyển sang: Sách giáo khoa</button>
+        <button id="playPause">Tạm dừng ⏸</button>
+        <button id="resetBtn">Đặt lại ↺</button>
+        <button id="btnFullscreen">Toàn màn hình ⛶</button>
+        <button id="btnSolution" class="success">Hiển thị lời giải 📝</button>
+        <div class="slider-container">
+            <label for="timeSlider">Thời gian \(t\) (s):</label>
+            <input type="range" id="timeSlider" min="0" max="10" step="0.05" value="0">
+        </div>
+    </section>
+
+    <section class="simulation" aria-label="Mô phỏng">
+        <canvas id="canvas" width="900" height="400"></canvas>
+    </section>
+
+    <section class="info-panel" aria-label="Thông số và Lời giải">
+        <div id="solutionBox">
+            <h3 style="margin-top: 0; color: var(--primary);">Lời giải chi tiết bài toán:</h3>
+            <p><strong>1. Phương trình vận tốc:</strong> \[ v = 0.85 \sin \frac{\pi t}{3} \]</p>
+            <ul>
+                <li><strong>Thời gian một chu kì hô hấp đầy đủ:</strong> Hàm số dạng \(v = A \sin(\omega t)\) có chu kì \(T = \frac{2\pi}{|\omega|} = \frac{2\pi}{\frac{\pi}{3}} = 6\) (giây). Vậy thời gian của một chu kì hô hấp là <strong>6 giây</strong>.</li>
+                <li><strong>Số chu kì hô hấp trong một phút:</strong> Trong 1 phút (= 60 giây), số chu kì hô hấp là: \(\frac{60}{6} = 10\) (chu kì).</li>
+                <li><strong>Quá trình hít vào và thở ra:</strong> 
+                    <ul>
+                        <li>Hít vào khi \(v > 0 \Leftrightarrow \sin \frac{\pi t}{3} > 0 \Leftrightarrow 0 < t < 3\) (trong chu kì đầu tiên).</li>
+                        <li>Thở ra khi \(v < 0 \Leftrightarrow \sin \frac{\pi t}{3} < 0 \Leftrightarrow 3 < t < 6\).</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="pedagogy" aria-label="Gợi ý sư phạm">
+        <h3 style="margin-top: 0; color: #d35400;">💡 Câu hỏi gợi mở cho học sinh:</h3>
+        <ol>
+            <li>Quan sát biểu đồ, tại thời điểm nào trong chu kì 6 giây thì lượng khí hít vào đạt tốc độ lớn nhất? Giá trị lớn nhất đó bằng bao nhiêu?</li>
+            <li>Dựa vào điều kiện \(v > 0\) (hít vào) và \(v < 0\) (thở ra), trong khoảng thời gian từ 0 đến 5 giây, học sinh hãy xác định khoảng thời gian cụ thể người đó thực hiện việc hít vào và thở ra?</li>
+            <li>Nếu nhịp thở của người ở trạng thái vận động nhanh hơn (chu kì giảm còn 3 giây), hệ số \(\omega\) trong công thức sẽ thay đổi như thế nào?</li>
+        </ol>
+    </section>
+
+    <footer>
+        <p><strong>Tác giả: Vũ Trung Thành - Tổ Toán-Tin</strong></p>
+        <p>THPT Bình Giang, Zalo: 0979791802</p>
+        <button id="exitBtn" class="danger" style="margin-top: 15px; width: 250px;">Thoát và đóng trình duyệt ✖</button>
+    </footer>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Các nút và thành phần giao diện
+    const styleToggle = document.getElementById('styleToggle');
+    const playPause = document.getElementById('playPause');
+    const resetBtn = document.getElementById('resetBtn');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const btnSolution = document.getElementById('btnSolution');
+    const timeSlider = document.getElementById('timeSlider');
+    const exitBtn = document.getElementById('exitBtn');
+    const solutionBox = document.getElementById('solutionBox');
+
+    // Trạng thái chương trình
+    let currentStyle = 'realistic'; // 'realistic' hoặc 'textbook'
+    let isPlaying = true;
+    let showSolution = false;
+    let time = 0; // thời gian t (giây)
+    const maxTime = 12; // hiển thị tối đa 12 giây (2 chu kì)
+    let animationId;
+
+    // Kích thước quy đổi
+    const cx = 100; // gốc tọa độ x cho chế độ SGK
+    const cy = 200; // trục tung ngang màn hình
+    const scaleX = 100; // 1 giây = 100 pixels
+    const scaleY = 120; // 1 đơn vị vận tốc = 120 pixels
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (currentStyle === 'realistic') {
+            drawRealistic();
+        } else {
+            drawTextbook();
+        }
+
+        if (isPlaying) {
+            time += 0.03;
+            if (time > maxTime) time = 0;
+            timeSlider.value = time.toFixed(2);
+        }
+
+        animationId = requestAnimationFrame(draw);
+    }
+
+    // --- PHONG CÁCH CHÂN THỰC ---
+    function drawRealistic() {
+        // Nền phòng nghỉ thư giãn nhẹ nhàng
+        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#e8f4f8');
+        gradient.addColorStop(1, '#d1e8f0');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Tính vận tốc tại thời điểm t hiện tại
+        let v = 0.85 * Math.sin((Math.PI * time) / 3);
+        let statusText = v > 0 ? "Đang HÍT VÀO (v > 0)" : (v < 0 ? "Đang THỞ RA (v < 0)" : "Nghỉ tạm thời (v = 0)");
+        let statusColor = v > 0 ? "#27ae60" : "#e74c3c";
+
+        // Vẽ người đang hô hấp (Biểu tượng mô phỏng lồng ngực)
+        let personX = 250;
+        let personY = 220;
+        
+        // Độ phồng ngực dựa theo vận tốc (tích phân hoặc trực quan theo v)
+        // Khi hít vào (v>0), ngực nở to. Khi thở ra (v<0), ngực xẹp xuống.
+        let chestExpansion = v * 25; 
+
+        // Đầu người
+        ctx.beginPath();
+        ctx.arc(personX, personY - 70, 25, 0, Math.PI * 2);
+        ctx.fillStyle = '#f39c12';
+        ctx.fill();
+        ctx.strokeStyle = '#d35400';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Thân và lồng ngực phồng/xẹp
+        ctx.beginPath();
+        ctx.ellipse(personX, personY + 10, 35 + chestExpansion, 50, 0, 0, Math.PI * 2);
+        ctx.fillStyle = v > 0 ? '#2ecc71' : '#e74c3c';
+        ctx.fill();
+        ctx.stroke();
+
+        // Mũi tên luồng khí qua miệng/mũi
+        ctx.fillStyle = statusColor;
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText(statusText, 450, 80);
+        ctx.fillText(`Thời gian t = ${time.toFixed(2)} s`, 450, 120);
+        ctx.fillText(`Vận tốc v = ${v.toFixed(2)} lít/giây`, 450, 160);
+
+        // Vẽ sơ đồ minh họa luồng khí chuyển động ra vào phổi
+        let particleX = 450 + ((time * 80) % 200);
+        if (v > 0) {
+            // Khí đi vào mũi
+            drawArrow(particleX, 220, particleX - 30, 220, '#27ae60', 'Khí O2 vào');
+        } else if (v < 0) {
+            // Khí đi ra khỏi mũi
+            drawArrow(particleX - 30, 220, particleX, 220, '#e74c3c', 'Khí CO2 ra');
+        }
+
+        // Vẽ thanh đo trực quan vận tốc v
+        ctx.fillStyle = '#bdc3c7';
+        ctx.fillRect(450, 240, 350, 30);
+        ctx.fillStyle = statusColor;
+        let barWidth = Math.abs(v) / 0.85 * 175;
+        if (v > 0) {
+            ctx.fillRect(625, 240, barWidth, 30);
+        } else {
+            ctx.fillRect(625 - barWidth, 240, barWidth, 30);
+        }
+        ctx.strokeStyle = '#2c3e50';
+        ctx.strokeRect(450, 240, 350, 30);
+        ctx.beginPath(); ctx.moveTo(625, 240); ctx.lineTo(625, 270); ctx.stroke();
+        
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = '14px Arial';
+        ctx.fillText("0", 620, 290);
+        ctx.fillText("+0.85 (Hít)", 740, 290);
+        ctx.fillText("-0.85 (Thở)", 460, 290);
+    }
+
+    // --- PHONG CÁCH SÁCH GIÁO KHOA ---
+    function drawTextbook() {
+        // Nền trắng, kẻ lưới tọa độ rõ ràng
+        ctx.strokeStyle = '#ecf0f1';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= canvas.width; x += 50) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        for (let y = 0; y <= canvas.height; y += 50) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+
+        // Trục tọa độ Ox, Oy
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(50, cy); ctx.lineTo(canvas.width - 50, cy); // Trục t
+        ctx.moveTo(100, 50); ctx.lineTo(100, canvas.height - 50); // Trục v
+        ctx.stroke();
+
+        // Mũi tên và nhãn trục
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText('t (s)', canvas.width - 40, cy - 10);
+        ctx.fillText('v (lít/s)', 110, 60);
+        ctx.fillText('0', 80, cy + 20);
+        ctx.fillText('0.85', 65, cy - 0.85 * scaleY + 5);
+        ctx.fillText('-0.85', 60, cy + 0.85 * scaleY + 5);
+
+        // Vạch chia trục tung
+        ctx.beginPath();
+        ctx.moveTo(95, cy - 0.85 * scaleY); ctx.lineTo(105, cy - 0.85 * scaleY);
+        ctx.moveTo(95, cy + 0.85 * scaleY); ctx.lineTo(105, cy + 0.85 * scaleY);
+        ctx.stroke();
+
+        // Vạch chia trục hoành theo giây và đánh dấu chu kì T = 6s
+        for (let t = 0; t <= 12; t += 1) {
+            let px = 100 + t * scaleX;
+            ctx.beginPath(); ctx.moveTo(px, cy - 4); ctx.lineTo(px, cy + 4); ctx.stroke();
+            ctx.fillText(t, px - 4, cy + 20);
+        }
+
+        // Vẽ đồ thị hàm số v = 0.85 * sin(pi * t / 3)
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let px = 100; px <= canvas.width - 50; px++) {
+            let tVal = (px - 100) / scaleX;
+            let vVal = 0.85 * Math.sin((Math.PI * tVal) / 3);
+            let py = cy - vVal * scaleY;
+            if (px === 100) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = '#2980b9';
+        ctx.stroke();
+
+        // Tô màu phân biệt vùng Hít vào (v>0) và Thở ra (v<0) trong chu kì đầu tiên (0 đến 6s)
+        ctx.fillStyle = 'rgba(39, 174, 96, 0.15)';
+        ctx.beginPath();
+        ctx.moveTo(100, cy);
+        for (let t = 0; t <= 3; t += 0.05) {
+            let px = 100 + t * scaleX;
+            let py = cy - (0.85 * Math.sin((Math.PI * t) / 3)) * scaleY;
+            ctx.lineTo(px, py);
+        }
+        ctx.lineTo(100 + 3 * scaleX, cy);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(231, 76, 60, 0.15)';
+        ctx.beginPath();
+        ctx.moveTo(100 + 3 * scaleX, cy);
+        for (let t = 3; t <= 6; t += 0.05) {
+            let px = 100 + t * scaleX;
+            let py = cy - (0.85 * Math.sin((Math.PI * t) / 3)) * scaleY;
+            ctx.lineTo(px, py);
+        }
+        ctx.lineTo(100 + 6 * scaleX, cy);
+        ctx.closePath();
+        ctx.fill();
+
+        // Đánh dấu điểm hiện tại trên đồ thị
+        let curPx = 100 + time * scaleX;
+        let curV = 0.85 * Math.sin((Math.PI * time) / 3);
+        let curPy = cy - curV * scaleY;
+
+        ctx.beginPath();
+        ctx.arc(curPx, curPy, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#e67e22';
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.stroke();
+
+        // Đường gióng từ điểm hiện tại
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.beginPath();
+        ctx.moveTo(curPx, cy); ctx.lineTo(curPx, curPy); ctx.lineTo(100, curPy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Hiển thị thông số trực tiếp trên góc màn hình
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = 'bold 15px Arial';
+        ctx.fillText(`t = ${time.toFixed(2)} s`, canvas.width - 200, 50);
+        ctx.fillText(`v = ${curV.toFixed(2)} lít/s`, canvas.width - 200, 80);
+        ctx.fillText(`Chu kì T = 6 giây`, canvas.width - 200, 110);
+    }
+
+    // Hàm phụ vẽ mũi tên minh họa
+    function drawArrow(x1, y1, x2, y2, color, text) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.stroke();
+        
+        ctx.font = '14px Arial';
+        ctx.fillText(text, x2 - 20, y2 - 15);
+    }
+
+    // --- XỬ LÝ SỰ KIỆN ---
+    styleToggle.addEventListener('click', () => {
+        if (currentStyle === 'realistic') {
+            currentStyle = 'textbook';
+            styleToggle.textContent = 'Chuyển sang: Chân thực';
+        } else {
+            currentStyle = 'realistic';
+            styleToggle.textContent = 'Chuyển sang: Sách giáo khoa';
+        }
+    });
+
+    playPause.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        playPause.textContent = isPlaying ? 'Tạm dừng ⏸' : 'Tiếp tục ▶';
+    });
+
+    resetBtn.addEventListener('click', () => {
+        time = 0;
+        timeSlider.value = 0;
+        if (!isPlaying) {
+            isPlaying = true;
+            playPause.textContent = 'Tạm dừng ⏸';
+        }
+    });
+
+    btnSolution.addEventListener('click', () => {
+        showSolution = !showSolution;
+        if (showSolution) {
+            solutionBox.style.display = 'block';
+            btnSolution.textContent = 'Ẩn lời giải 🙈';
+            btnSolution.classList.replace('success', 'danger');
+        } else {
+            solutionBox.style.display = 'none';
+            btnSolution.textContent = 'Hiển thị lời giải 📝';
+            btnSolution.classList.replace('danger', 'success');
+        }
+    });
+
+    btnFullscreen.addEventListener('click', () => {
+        const container = document.getElementById('app-container');
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(err => {
+                alert(`Lỗi toàn màn hình: ${err.message}`);
+            });
+            btnFullscreen.textContent = "Thoát toàn màn hình ✖";
+        } else {
+            document.exitFullscreen();
+            btnFullscreen.textContent = "Toàn màn hình ⛶";
+        }
+    });
+
+    timeSlider.addEventListener('input', (e) => {
+        time = parseFloat(e.target.value);
+        isPlaying = false; // Tạm dừng khi người dùng kéo thanh trượt thủ công
+        playPause.textContent = 'Tiếp tục ▶';
+    });
+
+    exitBtn.addEventListener('click', () => {
+        if(confirm('Bạn có chắc chắn muốn thoát và đóng trình duyệt?')) {
+            window.close();
+            document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:#f5f6fa;'><h2 style='text-align:center;color:#2c3e50;'>Đã đóng mô phỏng.<br>Thầy/Cô có thể đóng tab trình duyệt này.</h2></div>";
+        }
+    });
+
+    // Khởi động mô phỏng
+    animationId = requestAnimationFrame(draw);
+</script>
+</body>
+</html>

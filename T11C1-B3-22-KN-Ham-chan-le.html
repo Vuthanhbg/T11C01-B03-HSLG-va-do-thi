@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Hàm số chẵn - lẻ</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --bg-color: #f5f6fa;
+            --text-color: #2c3e50;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 1.5rem; }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 15px;
+            background: #ecf0f1;
+            justify-content: center;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #2980b9; }
+        button.danger { background: #e74c3c; }
+        button.danger:hover { background: #c0392b; }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+        input[type="range"] { width: 150px; }
+        .simulation {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: #fff;
+        }
+        canvas {
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            max-width: 100%;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+        }
+        .pedagogy {
+            padding: 20px;
+            background: #e8f4f8;
+            border-top: 1px solid #d1e8f0;
+        }
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: var(--secondary);
+            color: white;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .math-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        @media (max-width: 768px) {
+            .info-panel { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+    <header>
+        <h1>Mô Phỏng: Hàm Số Chẵn & Hàm Số Lẻ</h1>
+    </header>
+
+    <section class="controls">
+        <button id="styleToggle">Phong cách: Sách giáo khoa</button>
+        <button id="funcToggle">Đang chọn: Hàm số Chẵn</button>
+        <div class="slider-container">
+            <label for="xSlider">Vị trí điểm x: </label>
+            <input type="range" id="xSlider" min="0.5" max="4" step="0.1" value="2">
+            <span id="xValue">2.0</span>
+        </div>
+        <button id="fullscreenBtn">Toàn màn hình ⛶</button>
+    </section>
+
+    <section class="simulation">
+        <canvas id="canvas" width="800" height="400"></canvas>
+    </section>
+
+    <section class="info-panel">
+        <div class="math-box">
+            <h3>Định nghĩa Hàm số Chẵn</h3>
+            <p>\(\forall x \in D \Rightarrow -x \in D\)</p>
+            <p><strong>\(f(-x) = f(x)\)</strong></p>
+            <p><em>Đồ thị nhận trục tung (Oy) làm trục đối xứng.</em></p>
+            <p id="evenCalc" style="color: #c0392b; font-weight: bold;"></p>
+        </div>
+        <div class="math-box">
+            <h3>Định nghĩa Hàm số Lẻ</h3>
+            <p>\(\forall x \in D \Rightarrow -x \in D\)</p>
+            <p><strong>\(f(-x) = -f(x)\)</strong></p>
+            <p><em>Đồ thị nhận gốc toạ độ (O) làm tâm đối xứng.</em></p>
+            <p id="oddCalc" style="color: #2980b9; font-weight: bold;"></p>
+        </div>
+    </section>
+
+    <section class="pedagogy">
+        <h3>💡 Câu hỏi gợi mở cho học sinh:</h3>
+        <ol>
+            <li>Quan sát đồ thị, khi hoành độ \(x\) thay đổi, vị trí tương đối của hai điểm \(M(x, f(x))\) và \(M'(-x, f(-x))\) thay đổi như thế nào đối với trục tung hoặc gốc toạ độ?</li>
+            <li>Trong chế độ "Chân thực", em hãy chỉ ra đâu là trục đối xứng của cây cầu và đâu là tâm đối xứng của chong chóng?</li>
+            <li>Nếu gấp đôi tờ giấy (mặt phẳng toạ độ) dọc theo trục tung, đồ thị hàm số chẵn sẽ như thế nào? Điều kiện tương tự đối với hàm số lẻ là gì?</li>
+        </ol>
+    </section>
+
+    <footer>
+        <p><strong>Tác giả: Vũ Trung Thành - Tổ Toán-Tin</strong></p>
+        <p>THPT Bình Giang | Zalo: 0979791802</p>
+        <button id="exitBtn" class="danger" style="margin-top: 10px;">Thoát và đóng trình duyệt ✖</button>
+    </footer>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Trạng thái mô phỏng
+    let currentStyle = 'textbook'; // 'textbook' or 'realistic'
+    let currentFunc = 'even'; // 'even' or 'odd'
+    let xVal = 2.0;
+    
+    // Tỉ lệ toạ độ
+    const scale = 40; 
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    // Các thành phần DOM
+    const styleToggle = document.getElementById('styleToggle');
+    const funcToggle = document.getElementById('funcToggle');
+    const xSlider = document.getElementById('xSlider');
+    const xValue = document.getElementById('xValue');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const exitBtn = document.getElementById('exitBtn');
+
+    // Các hàm toán học
+    function f_even(x) { return 0.3 * x * x; }
+    function f_odd(x) { return 0.1 * x * x * x; }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (currentStyle === 'realistic') {
+            if (currentFunc === 'even') drawRealisticEven();
+            else drawRealisticOdd();
+        } else {
+            drawTextbook();
+        }
+        updateCalculations();
+    }
+
+    function drawTextbook() {
+        // Vẽ lưới
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += scale) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+        for (let i = 0; i < canvas.height; i += scale) {
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
+
+        // Vẽ hệ trục tọa độ
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); // Ox
+        ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); // Oy
+        ctx.stroke();
+        
+        // Mũi tên và nhãn
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = '16px Arial';
+        ctx.fillText('x', canvas.width - 20, cy - 10);
+        ctx.fillText('y', cx + 10, 20);
+        ctx.fillText('O', cx - 15, cy + 15);
+
+        // Vẽ đồ thị hàm số
+        ctx.beginPath();
+        ctx.strokeStyle = currentFunc === 'even' ? '#c0392b' : '#2980b9';
+        ctx.lineWidth = 3;
+        for (let x = -10; x <= 10; x += 0.1) {
+            let y = currentFunc === 'even' ? f_even(x) : f_odd(x);
+            let px = cx + x * scale;
+            let py = cy - y * scale;
+            if (x === -10) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Vẽ điểm x và -x
+        let yVal = currentFunc === 'even' ? f_even(xVal) : f_odd(xVal);
+        let yNegVal = currentFunc === 'even' ? f_even(-xVal) : f_odd(-xVal);
+
+        drawPoint(xVal, yVal, 'M(x, f(x))', '#e67e22');
+        drawPoint(-xVal, yNegVal, "M'(-x, f(-x))", '#8e44ad');
+    }
+
+    function drawPoint(x, y, label, color) {
+        let px = cx + x * scale;
+        let py = cy - y * scale;
+
+        // Vẽ đường gióng
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px, cy); ctx.lineTo(px, py); // tới Ox
+        ctx.lineTo(cx, py); // tới Oy
+        ctx.stroke();
+        
+        if (currentFunc === 'odd' && x < 0) {
+             // Đường chéo qua gốc toạ độ cho hàm lẻ
+             ctx.beginPath();
+             ctx.moveTo(px, py); ctx.lineTo(cx, cy);
+             ctx.stroke();
+        } else if (currentFunc === 'even' && x < 0) {
+             // Đường ngang qua trục tung cho hàm chẵn
+             let oppPx = cx + (-x) * scale;
+             ctx.beginPath();
+             ctx.moveTo(px, py); ctx.lineTo(oppPx, py);
+             ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // Vẽ điểm
+        ctx.beginPath();
+        ctx.arc(px, py, 6, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Vẽ nhãn
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText(label, px + 10, py - 10);
+    }
+
+    function drawRealisticEven() {
+        // Nền trời và cỏ
+        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(1, '#e0f6ff');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#27ae60';
+        ctx.fillRect(0, cy + 50, canvas.width, canvas.height / 2 - 50);
+        
+        // Vẽ dòng sông
+        ctx.fillStyle = '#3498db';
+        ctx.fillRect(0, cy + 80, canvas.width, 120);
+
+        // Vẽ cầu vòm (Parabol - Hàm chẵn)
+        ctx.beginPath();
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.lineWidth = 15;
+        for (let x = -8; x <= 8; x += 0.1) {
+            let y = -0.15 * x * x + 4; // Cầu vòm quay xuống
+            let px = cx + x * scale;
+            let py = cy - y * scale + 50;
+            if (x === -8) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Cột cờ đối xứng trên cầu
+        let yPos = -0.15 * xVal * xVal + 4;
+        drawRealisticMarker(xVal, yPos, '#e74c3c');
+        drawRealisticMarker(-xVal, yPos, '#e74c3c');
+        
+        // Vẽ trục đối xứng ảo
+        ctx.setLineDash([10, 10]);
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    function drawRealisticOdd() {
+        // Nền trời
+        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#2c3e50');
+        gradient.addColorStop(1, '#34495e');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Vẽ trục quay của chong chóng
+        ctx.fillStyle = '#7f8c8d';
+        ctx.fillRect(cx - 5, cy, 10, canvas.height / 2);
+
+        // Vẽ chong chóng (Hàm lẻ y = x^3 xoay nghiêng)
+        let time = Date.now() / 1000;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(time * 0.5); // Hiệu ứng quay nhẹ
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#f1c40f';
+        ctx.lineWidth = 8;
+        for (let x = -6; x <= 6; x += 0.1) {
+            let y = 0.05 * x * x * x;
+            let px = x * scale;
+            let py = -y * scale;
+            if (x === -6) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // 2 bóng đèn đối xứng tâm trên cánh
+        let yPos = 0.05 * xVal * xVal * xVal;
+        
+        ctx.beginPath();
+        ctx.arc(xVal * scale, -yPos * scale, 12, 0, Math.PI * 2);
+        ctx.fillStyle = '#e74c3c';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#e74c3c';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(-xVal * scale, -(-yPos) * scale, 12, 0, Math.PI * 2);
+        ctx.fillStyle = '#3498db';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#3498db';
+        ctx.fill();
+
+        ctx.restore();
+        
+        requestAnimationFrame(draw); // Lặp lại animation
+    }
+
+    function drawRealisticMarker(x, y, color) {
+        let px = cx + x * scale;
+        let py = cy - y * scale + 50;
+        
+        // Vẽ cột
+        ctx.fillStyle = '#2c3e50';
+        ctx.fillRect(px - 3, py - 40, 6, 40);
+        
+        // Vẽ đèn
+        ctx.beginPath();
+        ctx.arc(px, py - 45, 8, 0, Math.PI*2);
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = color;
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset
+    }
+
+    function updateCalculations() {
+        let x = parseFloat(xVal).toFixed(1);
+        if (currentFunc === 'even') {
+            let y = f_even(x).toFixed(2);
+            document.getElementById('evenCalc').innerHTML = `Tại x = ${x} <br> f(${x}) = ${y} <br> f(-${x}) = ${y} <br> => f(-x) = f(x)`;
+            document.getElementById('oddCalc').innerHTML = "";
+        } else {
+            let y = f_odd(x).toFixed(2);
+            document.getElementById('oddCalc').innerHTML = `Tại x = ${x} <br> f(${x}) = ${y} <br> f(-${x}) = ${-y} <br> => f(-x) = -f(x)`;
+            document.getElementById('evenCalc').innerHTML = "";
+        }
+    }
+
+    // Event Listeners
+    styleToggle.addEventListener('click', () => {
+        currentStyle = currentStyle === 'textbook' ? 'realistic' : 'textbook';
+        styleToggle.textContent = currentStyle === 'textbook' ? 'Phong cách: Sách giáo khoa' : 'Phong cách: Chân thực';
+        if (currentStyle === 'textbook') draw(); // Dừng animation nếu về SGK
+    });
+
+    funcToggle.addEventListener('click', () => {
+        currentFunc = currentFunc === 'even' ? 'odd' : 'even';
+        funcToggle.textContent = currentFunc === 'even' ? 'Đang chọn: Hàm số Chẵn' : 'Đang chọn: Hàm số Lẻ';
+        if (currentStyle === 'textbook') draw();
+    });
+
+    xSlider.addEventListener('input', (e) => {
+        xVal = e.target.value;
+        xValue.textContent = xVal;
+        if (currentStyle === 'textbook') draw();
+    });
+
+    fullscreenBtn.addEventListener('click', () => {
+        const container = document.getElementById('main-container');
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(err => {
+                alert(`Lỗi khi mở toàn màn hình: ${err.message}`);
+            });
+            fullscreenBtn.textContent = "Thoát toàn màn hình ✖";
+        } else {
+            document.exitFullscreen();
+            fullscreenBtn.textContent = "Toàn màn hình ⛶";
+        }
+    });
+
+    exitBtn.addEventListener('click', () => {
+        if(confirm('Bạn có chắc chắn muốn thoát mô phỏng?')) {
+            window.close();
+            // Fallback nếu trình duyệt chặn close() do tab không được mở bằng script
+            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Đã đóng mô phỏng. Thầy/Cô có thể đóng tab trình duyệt này.</h2>";
+        }
+    });
+
+    // Khởi tạo lần đầu
+    draw();
+</script>
+</body>
+</html>

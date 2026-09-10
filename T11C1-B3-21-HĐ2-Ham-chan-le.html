@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mô phỏng Đồ thị Hàm số Chẵn, Lẻ</title>
+    
+    <!-- 1. CẤU HÌNH MATHJAX (Bắt buộc đặt trước khi tải thư viện để sửa lỗi công thức) -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    
+    <!-- Tích hợp MathJax để hiển thị công thức Toán học chuẩn -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --panel-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+        }
+
+        [data-style="realistic"] {
+            --bg-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --panel-bg: #2d2d2d;
+            --border-color: #444444;
+            --primary-color: #4da6ff;
+            --secondary-color: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .container {
+                grid-template-columns: 2fr 1fr;
+            }
+            .header-full {
+                grid-column: 1 / -1;
+            }
+        }
+
+        header {
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        button.btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        [data-style="realistic"] button.btn-outline {
+            color: var(--primary-color);
+        }
+
+        /* Nút tùy chỉnh thêm */
+        #fullscreenBtn { background-color: #8b5cf6; }
+        #fullscreenBtn:hover { background-color: #7c3aed; }
+
+        #exitBtn {
+            background-color: #ef4444;
+            margin: 20px auto 0;
+            display: block;
+            padding: 12px 30px;
+            font-size: 1.1em;
+        }
+        #exitBtn:hover { background-color: #dc2626; }
+
+        #toggleAnswerBtn { background-color: #10b981; margin-top: 15px; }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+        }
+
+        .simulation {
+            display: flex;
+            justify-content: center;
+            background: var(--bg-color);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        .definition-box {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 15px;
+            margin-top: 15px;
+            font-style: italic;
+        }
+
+        .pedagogy h3 {
+            color: #d9534f;
+        }
+        [data-style="realistic"] .pedagogy h3 {
+            color: #ff6b6b;
+        }
+
+        .answer-content {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            border-radius: 4px;
+            color: #065f46;
+        }
+        
+        [data-style="realistic"] .answer-content {
+            background-color: #064e3b;
+            color: #d1fae5;
+        }
+
+        /* --- TOÀN MÀN HÌNH CSS --- */
+        :fullscreen {
+            background-color: var(--bg-color);
+            overflow-y: auto;
+        }
+        :fullscreen .container {
+            max-width: 1400px;
+            margin-top: 20px;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body data-style="textbook">
+
+<div class="container" id="mainContainer">
+    <header class="header-full">
+        <h1>Mô Phỏng Hàm Số Chẵn, Hàm Số Lẻ</h1>
+    </header>
+
+    <main class="left-col">
+        <section class="panel">
+            <div class="controls">
+                <button id="styleToggle" class="btn-outline">Chuyển sang phong cách: Chân thực</button>
+                <button id="fullscreenBtn">⛶ Toàn màn hình</button>
+                
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="funcType" value="even" checked> Hàm số Chẵn
+                    </label>
+                    <label>
+                        <input type="radio" name="funcType" value="odd"> Hàm số Lẻ
+                    </label>
+                </div>
+            </div>
+
+            <div class="slider-container">
+                <label for="xSlider">Di chuyển x:</label>
+                <input type="range" id="xSlider" min="0" max="8" step="0.1" value="4">
+                <span id="xDisplay">x = 4.0</span>
+            </div>
+        </section>
+
+        <section class="simulation" aria-label="Mô phỏng đồ thị">
+            <canvas id="canvas" width="800" height="500"></canvas>
+        </section>
+    </main>
+
+    <aside class="right-col">
+        <section class="panel info">
+            <h3>Thông số & Định nghĩa</h3>
+            <div id="defEven">
+                <p><strong>Hàm số Chẵn:</strong> \( f(-x) = f(x) \)</p>
+                <div class="definition-box">
+                    Đồ thị nhận trục tung (Oy) là trục đối xứng.
+                </div>
+                <p><em>Hàm số minh họa: \( y = 0.1x^2 - 3 \)</em></p>
+            </div>
+            <div id="defOdd" style="display: none;">
+                <p><strong>Hàm số Lẻ:</strong> \( f(-x) = -f(x) \)</p>
+                <div class="definition-box">
+                    Đồ thị nhận gốc tọa độ O(0,0) là tâm đối xứng.
+                </div>
+                <p><em>Hàm số minh họa: \( y = 0.05x^3 \)</em></p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Đại lượng</th>
+                        <th>Bên phải (x)</th>
+                        <th>Bên trái (-x)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Tọa độ <b>Hoành</b></td>
+                        <td id="valX">4.00</td>
+                        <td id="valNegX">-4.00</td>
+                    </tr>
+                    <tr>
+                        <td>Giá trị <b>Tung</b></td>
+                        <td id="valFx">...</td>
+                        <td id="valFnegX">...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="text-align: center; margin-top: 15px; font-weight: bold; color: var(--primary-color);" id="conclusionText"></p>
+        </section>
+
+        <section class="panel pedagogy">
+            <h3>Gợi ý sư phạm</h3>
+            <ol>
+                <li>Khi kéo thanh trượt x, điểm \( M(x, f(x)) \) và điểm \( M'(-x, f(-x)) \) di chuyển như thế nào so với trục tung / gốc tọa độ?</li>
+                <li>Quan sát bảng giá trị tung độ, em có nhận xét gì về \( f(x) \) và \( f(-x) \) trong từng trường hợp?</li>
+                <li>Nếu gấp đôi tờ giấy (màn hình) theo trục tung, đồ thị hàm chẵn sẽ như thế nào? Điều này có đúng với hàm lẻ không?</li>
+            </ol>
+            
+            <button id="toggleAnswerBtn">Hiện lời giải</button>
+            <div id="answerContent" class="answer-content">
+                <strong>Lời giải gợi ý:</strong><br>
+                1. Với hàm chẵn, \(M\) và \(M'\) luôn đối xứng nhau qua trục tung (Oy). Với hàm lẻ, chúng đối xứng qua gốc tọa độ O.<br>
+                2. Bảng giá trị cho thấy: Hàm chẵn thì Tung độ bằng nhau \( f(x) = f(-x) \). Hàm lẻ thì Tung độ đối nhau \( f(x) = -f(-x) \).<br>
+                3. Gấp theo trục tung thì đồ thị hàm chẵn trùng khít lên nhau (đối xứng trục). Đồ thị hàm lẻ không trùng khít nếu chỉ gấp theo trục tung (đối xứng tâm).
+            </div>
+        </section>
+    </aside>
+    
+    <button id="exitBtn">✖ Thoát và đóng trình duyệt</button>
+</div>
+
+<!-- Phần bản quyền tác giả -->
+<div style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px dashed #cbd5e1; color: #475569; font-size: 0.95em;">
+    &copy; Bản quyền sáng tạo số: <strong>Tác giả: Vũ Trung Thành - Tổ Toán-Tin, THPT Bình Giang</strong> | Zalo: 0979791802
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const styleToggle = document.getElementById('styleToggle');
+    const xSlider = document.getElementById('xSlider');
+    const radioInputs = document.querySelectorAll('input[name="funcType"]');
+    
+    // UI Elements mới thêm
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const exitBtn = document.getElementById('exitBtn');
+    const toggleAnswerBtn = document.getElementById('toggleAnswerBtn');
+    const answerContent = document.getElementById('answerContent');
+    const mainContainer = document.getElementById('mainContainer');
+    
+    // UI Elements cũ
+    const defEven = document.getElementById('defEven');
+    const defOdd = document.getElementById('defOdd');
+    const valX = document.getElementById('valX');
+    const valNegX = document.getElementById('valNegX');
+    const valFx = document.getElementById('valFx');
+    const valFnegX = document.getElementById('valFnegX');
+    const conclusionText = document.getElementById('conclusionText');
+    const xDisplay = document.getElementById('xDisplay');
+
+    // Trạng thái mô phỏng
+    let currentStyle = 'textbook';
+    let currentFunc = 'even'; // 'even' hoặc 'odd'
+    let currentX = parseFloat(xSlider.value);
+    let isAnswerVisible = false;
+    
+    // Cài đặt Canvas (Hệ tọa độ)
+    const UNIT = 40; // 1 đơn vị = 40 pixels
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    // Hàm số mẫu
+    function f_even(x) { return 0.1 * x * x - 3; }
+    function f_odd(x) { return 0.05 * x * x * x; }
+
+    function f(x) { return currentFunc === 'even' ? f_even(x) : f_odd(x); }
+
+    function toCanvas(mathX, mathY) {
+        return { x: cx + mathX * UNIT, y: cy - mathY * UNIT };
+    }
+
+    // Vẽ Hệ tọa độ
+    function drawGrid(style) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const isTextbook = style === 'textbook';
+        const gridColor = isTextbook ? '#e0e0e0' : '#333';
+        const axisColor = isTextbook ? '#000000' : '#ffffff';
+        const textColor = isTextbook ? '#000000' : '#ffffff';
+
+        ctx.lineWidth = 1;
+        ctx.font = '14px Arial';
+
+        // Lưới
+        for (let i = 0; i <= canvas.width / UNIT; i++) {
+            ctx.beginPath();
+            ctx.strokeStyle = gridColor;
+            ctx.moveTo(i * UNIT, 0);
+            ctx.lineTo(i * UNIT, canvas.height);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, i * UNIT);
+            ctx.lineTo(canvas.width, i * UNIT);
+            ctx.stroke();
+        }
+
+        // Trục Ox, Oy
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = axisColor;
+        ctx.fillStyle = textColor;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, cy);
+        ctx.lineTo(canvas.width, cy);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, canvas.height);
+        ctx.stroke();
+
+        // Mũi tên trục tọa độ
+        ctx.beginPath();
+        ctx.moveTo(canvas.width, cy);
+        ctx.lineTo(canvas.width - 10, cy - 5);
+        ctx.lineTo(canvas.width - 10, cy + 5);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx - 5, 10);
+        ctx.lineTo(cx + 5, 10);
+        ctx.fill();
+
+        // Nhãn gốc tọa độ và trục
+        ctx.fillText('O', cx - 15, cy + 15);
+        ctx.fillText('x', canvas.width - 15, cy - 10);
+        ctx.fillText('y', cx + 10, 15);
+    }
+
+    // Vẽ Đồ thị hàm số
+    function drawGraph(style) {
+        const isTextbook = style === 'textbook';
+        const graphColor = isTextbook ? '#007bff' : '#00ffff'; 
+
+        ctx.beginPath();
+        ctx.strokeStyle = graphColor;
+        ctx.lineWidth = isTextbook ? 2 : 3;
+        
+        if (!isTextbook) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = graphColor;
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
+        const startX = -cx / UNIT;
+        const endX = cx / UNIT;
+
+        for (let x = startX; x <= endX; x += 0.1) {
+            const y = f(x);
+            const pos = toCanvas(x, y);
+            if (x === startX) {
+                ctx.moveTo(pos.x, pos.y);
+            } else {
+                ctx.lineTo(pos.x, pos.y);
+            }
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0; 
+    }
+
+    // Vẽ Điểm và Đường dóng
+    function drawSymmetry(x_val, style) {
+        const y_val = f(x_val);
+        const y_neg_val = f(-x_val);
+        
+        const p1 = toCanvas(x_val, y_val);
+        const p2 = toCanvas(-x_val, y_neg_val);
+
+        const isTextbook = style === 'textbook';
+        const lineColor = isTextbook ? '#d9534f' : '#ff4d4d';
+        const pointColor = isTextbook ? '#000000' : '#ffffff';
+
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 5]);
+
+        ctx.beginPath();
+        if (currentFunc === 'even') {
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p1.x, cy);
+            ctx.moveTo(p2.x, p2.y);
+            ctx.lineTo(p2.x, cy);
+        } else {
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p1.x, cy);
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(cx, p1.y);
+            
+            ctx.moveTo(p2.x, p2.y);
+            ctx.lineTo(p2.x, cy);
+            ctx.moveTo(p2.x, p2.y);
+            ctx.lineTo(cx, p2.y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]); 
+
+        function drawPoint(x, y, label, isRight) {
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = pointColor;
+            ctx.fill();
+            ctx.strokeStyle = lineColor;
+            ctx.stroke();
+            
+            ctx.fillStyle = isTextbook ? '#000' : '#fff';
+            ctx.font = 'bold 14px Arial';
+            const textOffset = isRight ? 10 : -40;
+            ctx.fillText(label, x + textOffset, y - 10);
+        }
+
+        drawPoint(p1.x, p1.y, `M(x)`, true);
+        drawPoint(p2.x, p2.y, `M'(-x)`, false);
+        
+        drawPoint(p1.x, cy, 'x', true);
+        drawPoint(p2.x, cy, '-x', false);
+    }
+
+    function updateDisplay() {
+        xDisplay.textContent = `x = ${currentX.toFixed(1)}`;
+        
+        valX.textContent = currentX.toFixed(2);
+        valNegX.textContent = (-currentX).toFixed(2);
+        
+        const fx = f(currentX);
+        const fnegX = f(-currentX);
+        
+        valFx.textContent = fx.toFixed(2);
+        valFnegX.textContent = fnegX.toFixed(2);
+
+        if (currentFunc === 'even') {
+            defEven.style.display = 'block';
+            defOdd.style.display = 'none';
+            conclusionText.textContent = `Ta thấy f(-x) = f(x) = ${fx.toFixed(2)} ⇒ Đối xứng qua Oy`;
+        } else {
+            defEven.style.display = 'none';
+            defOdd.style.display = 'block';
+            conclusionText.textContent = `Ta thấy f(-x) = ${fnegX.toFixed(2)} và -f(x) = ${(-fx).toFixed(2)} ⇒ Đối xứng qua Tâm O`;
+        }
+    }
+
+    function render() {
+        drawGrid(currentStyle);
+        drawGraph(currentStyle);
+        if (currentX !== 0) {
+            drawSymmetry(currentX, currentStyle);
+        }
+        updateDisplay();
+    }
+
+    /* ---- XỬ LÝ SỰ KIỆN ---- */
+
+    xSlider.addEventListener('input', (e) => {
+        currentX = parseFloat(e.target.value);
+        render();
+    });
+
+    radioInputs.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            currentFunc = e.target.value;
+            render();
+        });
+    });
+
+    styleToggle.addEventListener('click', () => {
+        if (currentStyle === 'textbook') {
+            currentStyle = 'realistic';
+            document.body.setAttribute('data-style', 'realistic');
+            styleToggle.textContent = 'Chuyển sang phong cách: Sách giáo khoa';
+        } else {
+            currentStyle = 'textbook';
+            document.body.setAttribute('data-style', 'textbook');
+            styleToggle.textContent = 'Chuyển sang phong cách: Chân thực';
+        }
+        render();
+    });
+
+    // 1. Xử lý Ẩn/Hiện Lời Giải
+    toggleAnswerBtn.addEventListener('click', () => {
+        isAnswerVisible = !isAnswerVisible;
+        if (isAnswerVisible) {
+            answerContent.style.display = 'block';
+            toggleAnswerBtn.textContent = 'Ẩn lời giải';
+            toggleAnswerBtn.style.backgroundColor = '#64748b';
+        } else {
+            answerContent.style.display = 'none';
+            toggleAnswerBtn.textContent = 'Hiện lời giải';
+            toggleAnswerBtn.style.backgroundColor = '#10b981';
+        }
+    });
+
+    // 2. Xử lý Nút Toàn màn hình
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                alert(`Lỗi không thể mở toàn màn hình: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    });
+
+    // Tự động đổi nhãn nút Toàn màn hình khi ấn phím ESC
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = '✖ Thu nhỏ';
+            fullscreenBtn.style.backgroundColor = '#d35400';
+        } else {
+            fullscreenBtn.textContent = '⛶ Toàn màn hình';
+            fullscreenBtn.style.backgroundColor = '#8b5cf6';
+        }
+        setTimeout(render, 100); 
+    });
+
+    // 3. Xử lý Nút Thoát
+    exitBtn.addEventListener('click', () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+        if (confirm("Bạn có chắc chắn muốn thoát mô phỏng và đóng cửa sổ này không?")) {
+            window.close();
+            alert("Nếu cửa sổ không tự đóng, vui lòng nhấn dấu X ở góc màn hình.\nTác giả: Vũ Trung Thành - Tổ Toán-Tin, THPT Bình Giang.");
+        }
+    });
+
+    // Render lần đầu khi tải trang
+    window.onload = () => {
+        render();
+    };
+
+</script>
+</body>
+</html>

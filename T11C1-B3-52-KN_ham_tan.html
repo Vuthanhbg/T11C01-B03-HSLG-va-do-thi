@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mô Phỏng Khảo Sát Hàm Số y = tan(x)</title>
+    <!-- Tích hợp MathJax để hiển thị công thức Toán học sắc nét -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg-color: #f5f6fa;
+            --text-color: #2c3e50;
+            --increase: #27ae60;
+            --asymptote: #e74c3c;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 1.6rem; }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background: #ecf0f1;
+            justify-content: center;
+            align-items: center;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 0.95rem;
+        }
+        button:hover { background: #2980b9; }
+        button.danger { background: #e74c3c; }
+        button.danger:hover { background: #c0392b; }
+        button.success { background: #27ae60; }
+        button.success:hover { background: #219653; }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 6px;
+        }
+        .simulation {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: #fff;
+            width: 100%;
+        }
+        canvas {
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            max-width: 100%;
+            background: #fff;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+        .info-panel {
+            padding: 0 20px;
+            background: #fafafa;
+        }
+        
+        #solutionBox {
+            display: none; /* Ẩn mặc định */
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin: 15px 0;
+            line-height: 1.8;
+            animation: fadeIn 0.3s ease-in-out;
+            font-size: 1.05rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pedagogy {
+            padding: 20px;
+            background: #e8f4f8;
+            border-top: 1px solid #d1e8f0;
+            margin-top: 15px;
+        }
+        .pedagogy ol li { margin-bottom: 8px; }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; align-items: stretch; }
+            canvas { height: 300px; }
+            .slider-container { justify-content: space-between; }
+        }
+    </style>
+</head>
+<body id="main-body">
+
+<div class="container" id="app-container">
+    <header>
+        <h1>Mô Phỏng: Khảo sát Hàm số y = tan(x)</h1>
+    </header>
+
+    <section class="controls" aria-label="Điều khiển">
+        <button id="styleToggle">Chuyển sang: Chân thực</button>
+        <button id="playPause">Tạm dừng ⏸</button>
+        <button id="resetBtn">Đặt lại ↺</button>
+        <button id="btnFullscreen">Toàn màn hình ⛶</button>
+        <button id="btnSolution" class="success">Hiển thị lời giải 📝</button>
+        <div class="slider-container">
+            <label for="speedSlider">Góc quay (\(x\)):</label>
+            <input type="range" id="speedSlider" min="-1.4" max="1.4" step="0.01" value="0">
+        </div>
+    </section>
+
+    <section class="simulation" aria-label="Mô phỏng">
+        <canvas id="canvas" width="900" height="400"></canvas>
+    </section>
+
+    <section class="info-panel" aria-label="Thông số và Lời giải">
+        <div id="solutionBox">
+            <h3 style="margin-top: 0; color: var(--primary);">Tính chất Hàm số \(y = \tan x\):</h3>
+            <ul>
+                <li>Có tập xác định là \(D = \mathbb{R} \setminus \left\{ \frac{\pi}{2} + k\pi \mid k \in \mathbb{Z} \right\}\) và tập giá trị là \(\mathbb{R}\).</li>
+                <li>Là hàm số <strong>lẻ</strong> và tuần hoàn với chu kì \(\pi\).</li>
+                <li>Luôn <strong>đồng biến</strong> trên mỗi khoảng \(\left( -\frac{\pi}{2} + k\pi; \frac{\pi}{2} + k\pi \right), k \in \mathbb{Z}\) <span style="color:var(--increase);font-weight:bold;">(được vẽ màu xanh lá)</span>.</li>
+                <li>Có đồ thị đối xứng qua gốc toạ độ \(O\).</li>
+                <li>Đường thẳng \(x = \frac{\pi}{2} + k\pi\) là các <strong>đường tiệm cận đứng</strong> <span style="color:var(--asymptote);font-weight:bold;">(được vẽ đứt nét màu đỏ)</span>.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="pedagogy" aria-label="Gợi ý sư phạm">
+        <h3 style="margin-top: 0; color: #d35400;">💡 Câu hỏi gợi mở cho học sinh:</h3>
+        <ol>
+            <li>Quan sát chế độ "Sách giáo khoa", tại sao đồ thị lại bị đứt đoạn thành nhiều nhánh mà không nối liền như hàm sin hoặc cos? Các đường đứt nét màu đỏ có ý nghĩa gì?</li>
+            <li>Trong chế độ "Chân thực", khi ngọn hải đăng quét ánh sáng tới góc \(x\) gần sát \(90^\circ\) (\(\frac{\pi}{2}\)), vệt sáng trên bờ biển di chuyển như thế nào? Điều này giải thích điều gì về tập giá trị của hàm tang?</li>
+            <li>Từ tính chất đồ thị đi lên từ trái sang phải trên mọi khoảng xác định, ta kết luận gì về tính đơn điệu của hàm số \(y = \tan x\)?</li>
+        </ol>
+    </section>
+
+    <footer>
+        <p><strong>Tác giả: Vũ Trung Thành - Tổ Toán-Tin</strong></p>
+        <p>THPT Bình Giang, Zalo: 0979791802</p>
+        <button id="exitBtn" class="danger" style="margin-top: 15px; width: 250px;">Thoát và đóng trình duyệt ✖</button>
+    </footer>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Nút điều khiển
+    const styleToggle = document.getElementById('styleToggle');
+    const playPause = document.getElementById('playPause');
+    const resetBtn = document.getElementById('resetBtn');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const btnSolution = document.getElementById('btnSolution');
+    const speedSlider = document.getElementById('speedSlider');
+    const exitBtn = document.getElementById('exitBtn');
+    const solutionBox = document.getElementById('solutionBox');
+
+    // Trạng thái
+    let currentStyle = 'textbook';
+    let isPlaying = true;
+    let showSolution = false;
+    let currentAngle = 0; // x value in radians
+    let direction = 1;
+    let animationId;
+
+    // Tọa độ canvas
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const scaleX = 80; // 1 rad = 80px
+    const scaleY = 40; // 1 unit = 40px
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (currentStyle === 'realistic') {
+            drawRealistic();
+        } else {
+            drawTextbook();
+        }
+
+        if (isPlaying) {
+            currentAngle += 0.015 * direction;
+            // Cho góc dao động từ -1.4 rad đến 1.4 rad (gần -pi/2 đến pi/2)
+            if (currentAngle > 1.4) {
+                currentAngle = 1.4;
+                direction = -1;
+            } else if (currentAngle < -1.4) {
+                currentAngle = -1.4;
+                direction = 1;
+            }
+            speedSlider.value = currentAngle;
+        } else {
+            currentAngle = parseFloat(speedSlider.value);
+        }
+
+        animationId = requestAnimationFrame(draw);
+    }
+
+    function drawTextbook() {
+        // Vẽ Lưới tọa độ
+        ctx.strokeStyle = '#ecf0f1';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= canvas.width; i += scaleX * Math.PI / 4) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+        for (let i = cy % scaleY; i <= canvas.height; i += scaleY) {
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
+
+        // Vẽ Trục tọa độ (Ox, Oy)
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); // Ox
+        ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); // Oy
+        ctx.stroke();
+
+        // Nhãn trục
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('x', canvas.width - 20, cy - 10);
+        ctx.fillText('y', cx + 10, 20);
+        ctx.fillText('O', cx - 15, cy + 20);
+
+        // Nhãn trục x (Các điểm tiệm cận)
+        const piLabels = [
+            {val: -1.5, label: '-3π/2'}, {val: -0.5, label: '-π/2'},
+            {val: 0.5, label: 'π/2'}, {val: 1.5, label: '3π/2'}
+        ];
+        
+        ctx.font = '14px Arial';
+        piLabels.forEach(p => {
+            let px = cx + p.val * Math.PI * scaleX;
+            ctx.fillText(p.label, px - 15, cy + 20);
+            
+            // Vẽ đường tiệm cận đứng
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = '#e74c3c'; // Màu đỏ cho tiệm cận
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(px, 0);
+            ctx.lineTo(px, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+        
+        // Nhãn trục x (Giao điểm với trục hoành)
+        const zeroLabels = [{val: -2, label: '-2π'}, {val: -1, label: '-π'}, {val: 1, label: 'π'}, {val: 2, label: '2π'}];
+        zeroLabels.forEach(p => {
+            let px = cx + p.val * Math.PI * scaleX;
+            ctx.fillText(p.label, px - 10, cy + 20);
+            ctx.beginPath(); ctx.arc(px, cy, 3, 0, Math.PI*2); ctx.fill();
+        });
+
+        // Vẽ đồ thị y = tan(x)
+        ctx.strokeStyle = '#27ae60'; // Màu xanh lá thể hiện sự đồng biến
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        
+        let prevY = null;
+        for (let px = 0; px <= canvas.width; px++) {
+            let mathX = (px - cx) / scaleX;
+            let mathY = Math.tan(mathX);
+            let py = cy - mathY * scaleY;
+            
+            // Cắt đường vẽ nếu khoảng cách y quá lớn (chạm tiệm cận)
+            if (prevY !== null && Math.abs(py - prevY) > canvas.height / 2) {
+                ctx.moveTo(px, py);
+            } else {
+                ctx.lineTo(px, py);
+            }
+            prevY = py;
+        }
+        ctx.stroke();
+
+        // Vẽ điểm chuyển động
+        let moveX = currentAngle;
+        let pointPx = cx + moveX * scaleX;
+        let pointPy = cy - Math.tan(moveX) * scaleY;
+
+        ctx.beginPath();
+        ctx.arc(pointPx, pointPy, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#f39c12';
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Đường gióng tọa độ của điểm
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.beginPath();
+        ctx.moveTo(pointPx, cy);
+        ctx.lineTo(pointPx, pointPy);
+        ctx.lineTo(cx, pointPy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    function drawRealistic() {
+        // Khung cảnh: Hải đăng chiếu sáng bờ biển (Ứng dụng thực tế của d = L * tan(theta))
+        let L = 150; // Khoảng cách từ hải đăng đến bờ biển
+        let lightHouseX = cx;
+        let lightHouseY = canvas.height - 50;
+        let shoreY = lightHouseY - L; // Đường bờ biển
+
+        // Bầu trời đêm
+        let skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        skyGradient.addColorStop(0, '#0f2027');
+        skyGradient.addColorStop(1, '#203a43');
+        ctx.fillStyle = skyGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Biển
+        ctx.fillStyle = 'rgba(41, 128, 185, 0.4)';
+        ctx.fillRect(0, shoreY, canvas.width, canvas.height - shoreY);
+
+        // Bờ biển cát vàng
+        ctx.fillStyle = '#f39c12';
+        ctx.fillRect(0, shoreY - 20, canvas.width, 20);
+
+        // Tính vị trí vệt sáng d = L * tan(angle)
+        let spotX = lightHouseX + L * Math.tan(currentAngle);
+
+        // Vẽ chùm tia sáng quét
+        ctx.beginPath();
+        ctx.moveTo(lightHouseX, lightHouseY - 40); // Đỉnh hải đăng
+        ctx.lineTo(spotX - 40, shoreY - 10);
+        ctx.lineTo(spotX + 40, shoreY - 10);
+        ctx.closePath();
+        let lightGradient = ctx.createLinearGradient(lightHouseX, lightHouseY, spotX, shoreY);
+        lightGradient.addColorStop(0, 'rgba(241, 196, 15, 0.8)');
+        lightGradient.addColorStop(1, 'rgba(241, 196, 15, 0.1)');
+        ctx.fillStyle = lightGradient;
+        ctx.fill();
+
+        // Vệt sáng trên bờ biển
+        ctx.beginPath();
+        ctx.ellipse(spotX, shoreY - 10, 40, 10, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 100, 0.8)';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = 'yellow';
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset
+
+        // Vẽ trạm hải đăng
+        // Chân đế
+        ctx.fillStyle = '#bdc3c7';
+        ctx.fillRect(lightHouseX - 25, lightHouseY - 20, 50, 70);
+        // Thân hải đăng
+        ctx.fillStyle = '#c0392b';
+        ctx.beginPath();
+        ctx.moveTo(lightHouseX - 25, lightHouseY - 20);
+        ctx.lineTo(lightHouseX + 25, lightHouseY - 20);
+        ctx.lineTo(lightHouseX + 15, lightHouseY - 80);
+        ctx.lineTo(lightHouseX - 15, lightHouseY - 80);
+        ctx.fill();
+        // Sọc trắng
+        ctx.fillStyle = '#ecf0f1';
+        ctx.beginPath();
+        ctx.moveTo(lightHouseX - 21, lightHouseY - 40);
+        ctx.lineTo(lightHouseX + 21, lightHouseY - 40);
+        ctx.lineTo(lightHouseX + 18, lightHouseY - 60);
+        ctx.lineTo(lightHouseX - 18, lightHouseY - 60);
+        ctx.fill();
+        // Đèn
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.arc(lightHouseX, lightHouseY - 85, 10, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Chú thích toán học mô hình
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Arial';
+        ctx.fillText('Đường bờ biển (y = L)', 20, shoreY - 30);
+        ctx.fillText(`Góc quay x = ${currentAngle.toFixed(2)} rad`, lightHouseX + 40, lightHouseY - 30);
+        
+        // Vẽ đường nét đứt biểu diễn L
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.beginPath();
+        ctx.moveTo(lightHouseX, lightHouseY - 85);
+        ctx.lineTo(lightHouseX, shoreY - 10);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Gắn sự kiện cho các nút điều khiển
+    styleToggle.addEventListener('click', () => {
+        if (currentStyle === 'textbook') {
+            currentStyle = 'realistic';
+            styleToggle.textContent = 'Chuyển sang: Sách giáo khoa';
+        } else {
+            currentStyle = 'textbook';
+            styleToggle.textContent = 'Chuyển sang: Chân thực';
+        }
+    });
+
+    playPause.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        playPause.textContent = isPlaying ? 'Tạm dừng ⏸' : 'Tiếp tục ▶';
+    });
+
+    resetBtn.addEventListener('click', () => {
+        currentAngle = 0;
+        speedSlider.value = 0;
+        if (!isPlaying) {
+            isPlaying = true;
+            playPause.textContent = 'Tạm dừng ⏸';
+        }
+    });
+    
+    btnSolution.addEventListener('click', () => {
+        showSolution = !showSolution;
+        if(showSolution) {
+            solutionBox.style.display = 'block';
+            btnSolution.textContent = 'Ẩn lời giải 🙈';
+            btnSolution.classList.replace('success', 'danger');
+        } else {
+            solutionBox.style.display = 'none';
+            btnSolution.textContent = 'Hiển thị lời giải 📝';
+            btnSolution.classList.replace('danger', 'success');
+        }
+    });
+
+    btnFullscreen.addEventListener('click', () => {
+        const container = document.getElementById('app-container');
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(err => {
+                alert(`Lỗi toàn màn hình: ${err.message}`);
+            });
+            btnFullscreen.textContent = "Thoát toàn màn hình ✖";
+        } else {
+            document.exitFullscreen();
+            btnFullscreen.textContent = "Toàn màn hình ⛶";
+        }
+    });
+
+    speedSlider.addEventListener('input', (e) => {
+        currentAngle = parseFloat(e.target.value);
+        isPlaying = false; // Khi kéo tay thì dừng tự động quay
+        playPause.textContent = 'Tiếp tục ▶';
+    });
+
+    exitBtn.addEventListener('click', () => {
+        if(confirm('Bạn có chắc chắn muốn thoát và đóng trình duyệt?')) {
+            window.close();
+            // Fallback nếu trình duyệt chặn script window.close()
+            document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:#f5f6fa;'><h2 style='text-align:center;color:#2c3e50;'>Đã đóng mô phỏng.<br>Thầy/Cô có thể đóng tab trình duyệt này.</h2></div>";
+        }
+    });
+
+    // Khởi động vòng lặp vẽ
+    animationId = requestAnimationFrame(draw);
+</script>
+</body>
+</html>

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Hàm số y = cot(x)</title>
+    
+    <!-- Tích hợp MathJax để hiển thị công thức Toán học chuẩn xác -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --text-color: #333333;
+            --primary-color: #1a73e8;
+            --secondary-color: #e8eaed;
+            --accent-color: #d93025;
+            --border-radius: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--container-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 2px 5px rgba(26, 115, 232, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #1557b0;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #b3261e;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .slider-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .simulation {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            touch-action: none;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .info-box, .pedagogy-box {
+            background: #fff9e6;
+            border: 1px solid #ffe082;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .pedagogy-box {
+            background: #e6f4ea;
+            border-color: #a8dab5;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 1px dashed currentColor;
+            padding-bottom: 5px;
+            display: inline-block;
+        }
+
+        ul, ol {
+            padding-left: 20px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+
+        .math-block {
+            background: rgba(255,255,255,0.6);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: auto;
+            padding: 20px;
+            width: 100%;
+            font-weight: bold;
+            color: #555;
+            background: #fff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+
+        .footer-controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="mainContainer">
+        <header>
+            <h1>Khảo Sát Hàm Số \( y = \cot x \)</h1>
+        </header>
+
+        <section class="controls" aria-label="Điều khiển">
+            <button id="styleToggle" class="btn-primary">
+                🔄 Chuyển sang Phong cách Chân thực
+            </button>
+            <button id="fullscreenBtn" class="btn-primary">
+                ⛶ Toàn màn hình
+            </button>
+            
+            <div class="slider-container">
+                <label for="xSlider" class="slider-label">Giá trị góc \( x \): <span id="xValueDisplay">1.04</span> rad (\(\approx 60^\circ\))</label>
+                <!-- Trượt từ -2pi đến 2pi -->
+                <input type="range" id="xSlider" min="-6.28" max="6.28" step="0.05" value="1.047">
+            </div>
+        </section>
+
+        <section class="simulation" aria-label="Mô phỏng">
+            <canvas id="canvas" width="900" height="506"></canvas>
+        </section>
+
+        <div class="content-grid">
+            <section class="info-box" aria-label="Tính chất hàm số">
+                <h3>Tính chất Hàm số \( y = \cot x \)</h3>
+                <div class="math-block">
+                    <ul>
+                        <li>Có tập xác định là \( \mathbb{R} \setminus \{k\pi \mid k \in \mathbb{Z}\} \) và tập giá trị là \( \mathbb{R} \);</li>
+                        <li>Là hàm số lẻ và tuần hoàn với chu kì \( \pi \);</li>
+                        <li>Nghịch biến trên mỗi khoảng \( (k\pi; \pi + k\pi) \), \( k \in \mathbb{Z} \);</li>
+                        <li>Có đồ thị đối xứng qua gốc toạ độ.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="pedagogy-box" aria-label="Gợi ý sư phạm">
+                <h3>💡 Gợi ý sư phạm</h3>
+                <ol>
+                    <li>Quan sát đồ thị (chế độ SGK), làm sao ta nhận biết được hàm số \( \cot x \) tuần hoàn với chu kì \( \pi \)?</li>
+                    <li>Tại các đường nét đứt màu đỏ (\( x = k\pi \)), điều gì xảy ra với đồ thị? Hãy liên hệ với điều kiện xác định của hàm số.</li>
+                    <li>Chuyển sang <b>chế độ Chân thực</b>: Quan sát giao điểm trên trục ngang \( y=1 \). Khi góc \( x \) tăng từ \( 0 \) đến \( \pi \), điểm giao di chuyển như thế nào? Điều này giải thích tính chất gì của hàm số?</li>
+                </ol>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <p>Tác giả: Vũ Trung Thành - Tổ Toán-Tin, THPT Bình Giang, Zalo: 0979791802</p>
+        <div class="footer-controls">
+            <button id="exitBtn" class="btn-danger">❌ Thoát và đóng trình duyệt</button>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const styleToggle = document.getElementById('styleToggle');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const exitBtn = document.getElementById('exitBtn');
+        const xSlider = document.getElementById('xSlider');
+        const xValueDisplay = document.getElementById('xValueDisplay');
+
+        // Trạng thái mô phỏng
+        let currentMode = 'textbook'; // 'textbook' or 'realistic'
+        let currentX = parseFloat(xSlider.value);
+        
+        // Kích thước vẽ đồ thị (logical coordinates)
+        const xMin = -2.2 * Math.PI;
+        const xMax = 2.2 * Math.PI;
+        const yMin = -5;
+        const yMax = 5;
+
+        // Xử lý Resize Canvas cho Responsive
+        function resizeCanvas() {
+            // Lấy kích thước thực tế của vùng chứa
+            const containerWidth = canvas.parentElement.clientWidth;
+            // Tính toán chiều cao dựa trên tỉ lệ 16:9
+            const containerHeight = containerWidth * (9 / 16);
+            
+            // Đặt kích thước độ phân giải thực của canvas để tránh bị mờ
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+            
+            draw();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Chuyển đổi tọa độ Toán học sang tọa độ Canvas (cho toàn màn hình)
+        function mapX(x, width) {
+            return ((x - xMin) / (xMax - xMin)) * width;
+        }
+        function mapY(y, height) {
+            return height - ((y - yMin) / (yMax - yMin)) * height;
+        }
+
+        function drawTextbook() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Xóa nền
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            const originX = mapX(0, width);
+            const originY = mapY(0, height);
+
+            // Vẽ lưới
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            // Lưới dọc (theo pi/2)
+            for (let i = -4; i <= 4; i++) {
+                let xVal = i * Math.PI / 2;
+                let cx = mapX(xVal, width);
+                ctx.moveTo(cx, 0);
+                ctx.lineTo(cx, height);
+            }
+            // Lưới ngang
+            for (let i = Math.ceil(yMin); i <= Math.floor(yMax); i++) {
+                let cy = mapY(i, height);
+                ctx.moveTo(0, cy);
+                ctx.lineTo(width, cy);
+            }
+            ctx.stroke();
+
+            // Vẽ các đường tiệm cận đứng x = k*pi
+            ctx.strokeStyle = '#ff5252';
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let i = -2; i <= 2; i++) {
+                let cx = mapX(i * Math.PI, width);
+                ctx.moveTo(cx, 0);
+                ctx.lineTo(cx, height);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset nét đứt
+
+            // Vẽ Trục tọa độ
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            // Trục Ox
+            ctx.moveTo(0, originY);
+            ctx.lineTo(width, originY);
+            // Trục Oy
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX, height);
+            ctx.stroke();
+
+            // Mũi tên trục
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.moveTo(width, originY);
+            ctx.lineTo(width - 10, originY - 5);
+            ctx.lineTo(width - 10, originY + 5);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX - 5, 10);
+            ctx.lineTo(originX + 5, 10);
+            ctx.fill();
+
+            // Gắn nhãn các giá trị đặc biệt trên Ox
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.fillText('O', originX - 10, originY + 15);
+            ctx.fillText('x', width - 15, originY - 10);
+            ctx.fillText('y', originX + 15, 15);
+
+            const labels = [
+                {val: -2*Math.PI, text: '-2π'}, {val: -1.5*Math.PI, text: '-3π/2'},
+                {val: -Math.PI, text: '-π'}, {val: -0.5*Math.PI, text: '-π/2'},
+                {val: 0.5*Math.PI, text: 'π/2'}, {val: Math.PI, text: 'π'},
+                {val: 1.5*Math.PI, text: '3π/2'}, {val: 2*Math.PI, text: '2π'}
+            ];
+            labels.forEach(l => {
+                let cx = mapX(l.val, width);
+                ctx.fillText(l.text, cx, originY + 20);
+                // Vạch nhỏ
+                ctx.beginPath();
+                ctx.moveTo(cx, originY - 3);
+                ctx.lineTo(cx, originY + 3);
+                ctx.stroke();
+            });
+
+            // Gắn nhãn Oy
+            ctx.textAlign = 'right';
+            for (let i = Math.ceil(yMin); i <= Math.floor(yMax); i++) {
+                if (i !== 0) {
+                    let cy = mapY(i, height);
+                    ctx.fillText(i.toString(), originX - 5, cy + 5);
+                }
+            }
+
+            ctx.strokeStyle = '#1a73e8';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            let isDrawing = false;
+
+            for (let px = 0; px <= width; px += 1) {
+                // Đổi px sang tọa độ toán
+                let x = xMin + (px / width) * (xMax - xMin);
+                
+                // Tránh vẽ chính xác tại các điểm tiệm cận để không bị lỗi Infinity
+                if (Math.abs(Math.sin(x)) < 0.05) {
+                    isDrawing = false;
+                    continue;
+                }
+
+                let y = 1 / Math.tan(x);
+                let py = mapY(y, height);
+
+                if (!isDrawing) {
+                    ctx.moveTo(px, py);
+                    isDrawing = true;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+
+            // Vẽ điểm hiện tại đang xét theo thanh trượt
+            let currentY = 1 / Math.tan(currentX);
+            let pointX = mapX(currentX, width);
+            let pointY = mapY(currentY, height);
+
+            if (Math.abs(Math.sin(currentX)) > 0.05) {
+                // Đường gióng nét đứt
+                ctx.strokeStyle = '#888';
+                ctx.setLineDash([3, 3]);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(pointX, originY);
+                ctx.lineTo(pointX, pointY);
+                ctx.lineTo(originX, pointY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Điểm
+                ctx.fillStyle = '#d93025';
+                ctx.beginPath();
+                ctx.arc(pointX, pointY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Chú thích
+                ctx.fillStyle = '#d93025';
+                ctx.textAlign = 'left';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(` cot(${currentX.toFixed(2)}) ≈ ${currentY.toFixed(2)}`, pointX + 10, pointY - 10);
+            }
+        }
+
+        function drawRealistic() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Nền mô phỏng không gian tối/bảng đen
+            let grad = ctx.createRadialGradient(width/2, height/2, 50, width/2, height/2, width);
+            grad.addColorStop(0, '#2b3a42');
+            grad.addColorStop(1, '#11181c');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Phân chia 2 vùng: Trái (Đường tròn) và Phải (Đồ thị)
+            const leftWidth = width * 0.45;
+            
+            // Vẽ đường phân cách
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(leftWidth, 0);
+            ctx.lineTo(leftWidth, height);
+            ctx.stroke();
+
+            /* PHẦN TRÁI: ĐƯỜNG TRÒN LƯỢNG GIÁC */
+            const centerX = leftWidth / 2;
+            const centerY = height / 2;
+            const radius = Math.min(centerX, centerY) * 0.6; // Bán kính đường tròn
+
+            // Trục tọa độ đường tròn
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(leftWidth, centerY);
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, height);
+            ctx.stroke();
+
+            // Trục cotang (y = 1, hay y = -radius trên canvas)
+            const cotAxisY = centerY - radius;
+            ctx.strokeStyle = '#4caf50'; // Màu xanh lá cho trục cot
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(20, cotAxisY);
+            ctx.lineTo(leftWidth - 20, cotAxisY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#4caf50';
+            ctx.font = '14px Arial';
+            ctx.fillText('Trục cotang (y=1)', centerX + radius + 10, cotAxisY - 10);
+
+            // Vẽ đường tròn
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Tính toán vị trí góc hiện tại
+            // currentX là góc. Trục Y trên canvas ngược xuống
+            const endX = centerX + radius * Math.cos(currentX);
+            const endY = centerY - radius * Math.sin(currentX); // Trừ vì Y lộn ngược
+
+            // Vẽ bán kính (tia góc x) kéo dài
+            let extLength = radius * 3;
+            if (Math.abs(Math.sin(currentX)) > 0.05) {
+                // Tính giao điểm với trục cotang
+                let cotVal = 1 / Math.tan(currentX);
+                let intersectX = centerX + radius * cotVal;
+                
+                // Vẽ tia
+                ctx.strokeStyle = 'rgba(255, 235, 59, 0.7)'; // Tia màu vàng
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                
+                // Nếu hướng lên trên, vẽ tới giao điểm
+                if(Math.sin(currentX) > 0) {
+                     ctx.lineTo(intersectX, cotAxisY);
+                } else {
+                     // Nếu hướng xuống, vẽ đường kéo dài về phía sau để cắt trục cotang
+                     ctx.lineTo(centerX - radius*3*Math.cos(currentX), centerY + radius*3*Math.sin(currentX));
+                     // Nét đứt cắt trục cotang
+                     ctx.beginPath();
+                     ctx.setLineDash([5,5]);
+                     ctx.moveTo(centerX, centerY);
+                     ctx.lineTo(intersectX, cotAxisY);
+                     ctx.stroke();
+                     ctx.setLineDash([]);
+                }
+                ctx.stroke();
+
+                // Đánh dấu đoạn thẳng đại diện cho giá trị cot(x)
+                ctx.strokeStyle = '#ff9800'; // Màu cam cho giá trị
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(centerX, cotAxisY);
+                ctx.lineTo(intersectX, cotAxisY);
+                ctx.stroke();
+
+                // Điểm giao cắt
+                ctx.fillStyle = '#ff9800';
+                ctx.beginPath();
+                ctx.arc(intersectX, cotAxisY, 6, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Nhãn giá trị cot
+                ctx.fillStyle = '#fff';
+                ctx.textAlign = 'center';
+                ctx.fillText(`cot = ${cotVal.toFixed(2)}`, intersectX, cotAxisY - 15);
+            }
+
+            // Vẽ góc x (cung tròn)
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            // Lưu ý canvas arc chạy theo chiều kim đồng hồ, hệ trục toán ngược lại
+            // currentX âm hay dương cần xử lý vẽ arc cho đúng
+            let startAngle = 0;
+            let endAngle = -currentX; 
+            if (currentX > 0) {
+                 ctx.arc(centerX, centerY, 30, 0, endAngle, true);
+            } else {
+                 ctx.arc(centerX, centerY, 30, 0, endAngle, false);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            ctx.fillText('x', centerX + 40 * Math.cos(-currentX/2), centerY + 40 * Math.sin(-currentX/2));
+
+
+            /* PHẦN PHẢI: TRACE ĐỒ THỊ MƯỢT MÀ */
+            const graphWidth = width - leftWidth;
+            const graphX = leftWidth;
+            
+            // Hệ tọa độ nhỏ gọn cho phần bên phải
+            const gxMin = 0;
+            const gxMax = 2 * Math.PI;
+            
+            function mGx(x) { return graphX + ((x - gxMin)/(gxMax - gxMin)) * graphWidth * 0.9 + graphWidth*0.05; }
+            function mGy(y) { return height/2 - (y/4) * (height/2 * 0.8); }
+
+            // Trục tọa độ đồ thị bên phải
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(graphX, height/2);
+            ctx.lineTo(width, height/2);
+            
+            // Vẽ các đường tiệm cận pi, 2pi
+            ctx.setLineDash([4,4]);
+            ctx.strokeStyle = 'rgba(255, 82, 82, 0.5)';
+            [0, Math.PI, 2*Math.PI].forEach(val => {
+                let xPos = mGx(val);
+                ctx.moveTo(xPos, 0);
+                ctx.lineTo(xPos, height);
+            });
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Vẽ quỹ đạo (vết mờ)
+            ctx.strokeStyle = 'rgba(26, 115, 232, 0.4)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            let isD = false;
+            for(let vx = 0.05; vx <= 2*Math.PI - 0.05; vx+=0.05) {
+                if(Math.abs(vx - Math.PI) < 0.1) { isD=false; continue; }
+                let vy = 1/Math.tan(vx);
+                let px = mGx(vx);
+                let py = mGy(vy);
+                if(!isD) { ctx.moveTo(px, py); isD = true; }
+                else { ctx.lineTo(px, py); }
+            }
+            ctx.stroke();
+
+            // Vẽ điểm đang chạy (nếu currentX nằm trong vùng 0 -> 2pi, ta lấy module 2pi)
+            // Chuẩn hóa currentX về [0, 2pi] để hiển thị bên phải
+            let showX = currentX;
+            while(showX < 0) showX += 2*Math.PI;
+            while(showX >= 2*Math.PI) showX -= 2*Math.PI;
+
+            if(Math.abs(Math.sin(showX)) > 0.05) {
+                let showY = 1/Math.tan(showX);
+                let gpx = mGx(showX);
+                let gpy = mGy(showY);
+
+                // Điểm trên đồ thị
+                ctx.fillStyle = '#ff9800';
+                ctx.beginPath();
+                ctx.arc(gpx, gpy, 6, 0, Math.PI*2);
+                ctx.fill();
+
+                // Gióng từ đường tròn sang (mô phỏng sự liên kết)
+                // Ta có cotVal bên trái, vẽ đường gióng ngang từ phần bên trái sang
+                let yValLeft = cotAxisY; // Gióng từ trục
+                ctx.strokeStyle = 'rgba(255, 152, 0, 0.3)';
+                ctx.setLineDash([5,5]);
+                ctx.beginPath();
+                ctx.moveTo(centerX + radius * (1/Math.tan(currentX)), cotAxisY);
+                // Đường lượn nhẹ mô phỏng ánh xạ (cho đẹp)
+                ctx.bezierCurveTo(leftWidth, cotAxisY, leftWidth, gpy, gpx, gpy);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Tiêu đề nhỏ
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Định nghĩa qua trục cotang', centerX, 30);
+            ctx.fillText('Đồ thị y = cot(x)', graphX + graphWidth/2, 30);
+        }
+
+        function draw() {
+            if (currentMode === 'textbook') {
+                drawTextbook();
+            } else {
+                drawRealistic();
+            }
+        }
+
+        // Cập nhật khi kéo thanh trượt
+        xSlider.addEventListener('input', (e) => {
+            currentX = parseFloat(e.target.value);
+            
+            // Cập nhật hiển thị text (chuyển đổi rad sang độ cho dễ hiểu)
+            let degrees = (currentX * 180 / Math.PI).toFixed(0);
+            xValueDisplay.innerHTML = `${currentX.toFixed(2)} rad (≈ ${degrees}&deg;)`;
+            
+            draw();
+        });
+
+        // Chuyển đổi phong cách
+        styleToggle.addEventListener('click', () => {
+            if (currentMode === 'textbook') {
+                currentMode = 'realistic';
+                styleToggle.innerHTML = '🔄 Chuyển sang Phong cách Sách giáo khoa';
+                styleToggle.classList.remove('btn-primary');
+                styleToggle.style.backgroundColor = '#2b3a42';
+                styleToggle.style.color = '#fff';
+                // Đặt lại slider về đoạn [0, 2pi] cho dễ nhìn ở chế độ chân thực
+                if(currentX < 0) {
+                    xSlider.value = 1.047;
+                    currentX = 1.047;
+                    xValueDisplay.innerHTML = `1.05 rad (≈ 60&deg;)`;
+                }
+            } else {
+                currentMode = 'textbook';
+                styleToggle.innerHTML = '🔄 Chuyển sang Phong cách Chân thực';
+                styleToggle.classList.add('btn-primary');
+                styleToggle.style.backgroundColor = '';
+            }
+            draw();
+        });
+
+        // Nút Toàn màn hình
+        fullscreenBtn.addEventListener('click', () => {
+            const container = document.getElementById('mainContainer');
+            if (!document.fullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.mozRequestFullScreen) { /* Firefox */
+                    container.mozRequestFullScreen();
+                } else if (container.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) { /* IE/Edge */
+                    container.msRequestFullscreen();
+                }
+                fullscreenBtn.innerHTML = '⛶ Thu nhỏ';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                fullscreenBtn.innerHTML = '⛶ Toàn màn hình';
+            }
+        });
+
+        // Xử lý thay đổi trạng thái fullscreen bằng phím ESC
+        document.addEventListener('fullscreenchange', () => {
+             if (!document.fullscreenElement) {
+                 fullscreenBtn.innerHTML = '⛶ Toàn màn hình';
+             }
+        });
+
+        // Nút Thoát trình duyệt
+        exitBtn.addEventListener('click', () => {
+            // Lưu ý: Lệnh window.close() thường chỉ hoạt động nếu trang được mở bằng script.
+            // Bổ sung thông báo phòng trường hợp bị trình duyệt chặn.
+            if(confirm("Bạn có chắc chắn muốn đóng trang này không?")) {
+                window.close();
+                // Fallback nếu window.close() bị chặn (thường gặp trên tab tự gõ url)
+                setTimeout(() => {
+                    alert("Trình duyệt chặn lệnh đóng tự động. Vui lòng bấm dấu X ở góc tab để thoát.");
+                }, 300);
+            }
+        });
+
+        window.onload = function() {
+            resizeCanvas(); // Kích hoạt vẽ lần đầu
+        };
+    </script>
+</body>
+</html>

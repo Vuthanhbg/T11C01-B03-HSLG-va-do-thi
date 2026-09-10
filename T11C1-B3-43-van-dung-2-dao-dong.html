@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mô Phỏng Dao Động Điều Hòa - Vận Dụng 2</title>
+    
+    <!-- Cấu hình MathJax đặt TRƯỚC thư viện để sửa lỗi hiển thị công thức -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            /* Phong cách Sách giáo khoa (Textbook) */
+            --bg-body: #f8f9fa;
+            --bg-panel: #ffffff;
+            --text-main: #212529;
+            --border-color: #dee2e6;
+            --primary-color: #0d6efd;
+            --graph-line: #dc3545;
+            --grid-color: #e9ecef;
+            --axis-color: #000000;
+            --btn-text: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.05);
+            --highlight: #ffc107;
+            --font-family: 'Times New Roman', Times, serif;
+            --canvas-bg: #ffffff;
+            --spring-color: #6c757d;
+            --mass-color: #0d6efd;
+        }
+
+        [data-theme="realistic"] {
+            /* Phong cách Chân thực (Realistic) */
+            --bg-body: #1e1e2f;
+            --bg-panel: #2a2a40;
+            --text-main: #e0e0e0;
+            --border-color: #444466;
+            --primary-color: #4da6ff;
+            --graph-line: #ff4d4d;
+            --grid-color: rgba(255, 255, 255, 0.1);
+            --axis-color: #aaaaaa;
+            --btn-text: #ffffff;
+            --shadow: 0 4px 15px rgba(0,0,0,0.3);
+            --highlight: #ffd700;
+            --font-family: 'Segoe UI', Arial, sans-serif;
+            --canvas-bg: #2a2a40;
+            --spring-color: #b0c4de;
+            --mass-color: #c0c0c0; /* Màu kim loại */
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* --- TOÀN MÀN HÌNH --- */
+        :fullscreen {
+            background-color: var(--bg-body);
+            overflow-y: auto;
+        }
+        :fullscreen .container {
+            max-width: 100%;
+            margin-top: 10px;
+            box-shadow: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                grid-template-columns: 2fr 1fr;
+            }
+            .header-full {
+                grid-column: 1 / -1;
+            }
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        h1, h2, h3 { margin-top: 0; }
+        
+        .panel {
+            background-color: var(--bg-panel);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--primary-color);
+            color: var(--btn-text);
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        button:hover { opacity: 0.85; transform: translateY(-1px); }
+        
+        button.btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        [data-theme="realistic"] button.btn-outline { color: var(--primary-color); }
+        
+        button.btn-purple { background-color: #8b5cf6; color: white; }
+        button.btn-danger { background-color: #dc3545; color: white; }
+
+        .slider-group {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: rgba(128, 128, 128, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .canvas-container {
+            width: 100%;
+            background-color: var(--canvas-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: center;
+        }
+
+        .data-table th {
+            background-color: rgba(13, 110, 253, 0.1);
+            font-weight: bold;
+        }
+        [data-theme="realistic"] .data-table th { background-color: rgba(77, 166, 255, 0.1); }
+
+        .formula-box {
+            background-color: rgba(13, 110, 253, 0.05);
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        [data-theme="realistic"] .formula-box { background-color: rgba(77, 166, 255, 0.05); }
+
+        .highlight-text { font-weight: bold; color: var(--graph-line); }
+
+        .pedagogy h3 {
+            color: #d9534f;
+            border-bottom: 1px dashed #d9534f;
+            padding-bottom: 5px;
+        }
+        [data-theme="realistic"] .pedagogy h3 {
+            color: #ff6b6b;
+            border-bottom: 1px dashed #ff6b6b;
+        }
+        .pedagogy ol { padding-left: 20px; }
+        .pedagogy li { margin-bottom: 10px; }
+
+        .exit-wrapper { text-align: center; margin-top: 30px; }
+    </style>
+</head>
+<body data-theme="textbook">
+
+<div class="container" id="main-container">
+    <header class="header-full">
+        <h1>Vận Dụng 2: Dao Động Điều Hòa</h1>
+        <h2>\( x(t) = -5\cos(4\pi t) = 5\cos(4\pi t + \pi) \) (cm)</h2>
+    </header>
+
+    <main class="left-col">
+        <section class="panel controls" aria-label="Điều khiển">
+            <div style="width: 100%; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                <button id="styleToggle" class="btn-outline">Chuyển sang: Chân thực (Con lắc lò xo)</button>
+                <button id="fullscreenBtn" class="btn-purple">Toàn màn hình</button>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="playPauseBtn">▶ Chạy / Tạm dừng</button>
+                <button id="resetBtn">⟲ Đặt lại</button>
+                <button id="toggleSolutionBtn" class="btn-purple">Ẩn lời giải</button>
+            </div>
+            
+            <div class="slider-group" style="margin-top: 10px;">
+                <label for="timeSlider" style="font-weight: bold;">Thời gian \( t \) (s):</label>
+                <input type="range" id="timeSlider" min="0" max="2" step="0.01" value="0">
+                <span id="timeDisplay" style="min-width: 60px; font-weight: bold;">0.00 s</span>
+            </div>
+        </section>
+
+        <section class="panel canvas-container" aria-label="Mô phỏng đồ thị và dao động">
+            <canvas id="simCanvas" width="800" height="400"></canvas>
+        </section>
+    </main>
+
+    <aside class="right-col">
+        <section class="panel">
+            <h3>Thông số Dao Động</h3>
+            <div id="solutionBox" style="transition: opacity 0.3s;">
+                <div class="formula-box">
+                    <p>Biên độ: \( A = 5 \) cm</p>
+                    <p>Tần số góc: \( \omega = 4\pi \) rad/s</p>
+                    <p>Pha ban đầu: \( \varphi = \pi \) rad</p>
+                    <p>Chu kì: \( T = \frac{2\pi}{\omega} = \frac{2\pi}{4\pi} = 0.5 \) s</p>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th colspan="2">Trạng thái tại \( t \) = <span id="valT">0.00</span> s</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Li độ \( x(t) \)</strong></td>
+                            <td class="highlight-text"><span id="valX">-5.00</span> cm</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pha dao động</strong></td>
+                            <td><span id="valPhase">3.14</span> rad (\( \pi \))</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Số dao động toàn phần</strong></td>
+                            <td><span id="valOscillations">0.00</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 15px; padding: 10px; background-color: rgba(255, 193, 7, 0.2); border-radius: 4px;">
+                    <strong>Tại \( t = 2 \) s:</strong>
+                    <ul style="margin-top: 5px; margin-bottom: 0; padding-left: 20px;">
+                        <li>Pha dao động: \( 4\pi(2) + \pi = 9\pi \) rad</li>
+                        <li>Số dao động toàn phần: \( \frac{2}{0.5} = 4 \)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel pedagogy">
+            <h3>Gợi ý sư phạm trên lớp</h3>
+            <ol>
+                <li>Tại thời điểm ban đầu (\( t = 0 \)), vật đang ở vị trí nào? (Chú ý dấu của phương trình ban đầu là \(-5\cos(4\pi t)\)).</li>
+                <li>Quan sát chấm chạy trên đồ thị, sau bao lâu thì nó lặp lại vị trí và trạng thái ban đầu? Thời gian đó gọi là gì?</li>
+                <li>Trong 2 giây (kéo thanh trượt đến cuối), hãy đếm số lần đồ thị tạo thành một hình "sóng" hoàn chỉnh (từ đáy này sang đáy tiếp theo).</li>
+            </ol>
+        </section>
+    </aside>
+</div>
+
+<div class="exit-wrapper">
+    <button id="exitBtn" class="btn-danger">Thoát và đóng trình duyệt</button>
+</div>
+
+<!-- Phần bản quyền tác giả -->
+<div style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px dashed #cbd5e1; color: #475569; font-size: 1em;">
+    Tác giả: <strong>Vũ Trung Thành - Tổ Toán-Tin, THPT Bình Giang, Zalo: 0979791802</strong>
+</div>
+
+<script>
+    // --- KHỞI TẠO ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const timeSlider = document.getElementById('timeSlider');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const styleToggle = document.getElementById('styleToggle');
+    
+    const toggleSolutionBtn = document.getElementById('toggleSolutionBtn');
+    const solutionBox = document.getElementById('solutionBox');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const exitBtn = document.getElementById('exitBtn');
+    
+    // UI Elements
+    const timeDisplay = document.getElementById('timeDisplay');
+    const valT = document.getElementById('valT');
+    const valX = document.getElementById('valX');
+    const valPhase = document.getElementById('valPhase');
+    const valOsc = document.getElementById('valOscillations');
+
+    // Trạng thái
+    let currentTime = parseFloat(timeSlider.value);
+    let isPlaying = false;
+    let isSolutionVisible = true;
+    let currentTheme = 'textbook'; // 'textbook' or 'realistic'
+    let animationId;
+    let lastTimestamp = 0;
+
+    // Hằng số Vật lý
+    const A = 5;       // Biên độ (cm)
+    const OMEGA = 4 * Math.PI; // Tần số góc (rad/s)
+    const PHI = Math.PI;       // Pha ban đầu (rad)
+    const T = 0.5;     // Chu kì (s)
+    const MAX_TIME = 2; // Giây
+
+    // Phương trình li độ: x(t) = A * cos(omega * t + phi)
+    // Tương đương x(t) = 5 * cos(4*PI*t + PI) = -5 * cos(4*PI*t)
+    function getX(t) {
+        return A * Math.cos(OMEGA * t + PHI);
+    }
+    
+    function getPhase(t) {
+        return OMEGA * t + PHI;
+    }
+
+    // --- CÀI ĐẶT CANVAS ---
+    const CANVAS_W = 800;
+    const CANVAS_H = 400;
+    
+    // Tọa độ cho Đồ thị (Textbook Mode)
+    const GRAPH_OX = 50;
+    const GRAPH_OY = 200;
+    const GRAPH_W = 700;
+    const SCALE_T = GRAPH_W / MAX_TIME; // px/s
+    const SCALE_X = 25; // px/cm (Biên độ 5cm -> 125px)
+
+    // Tọa độ cho Con lắc (Realistic Mode)
+    const SPRING_X = CANVAS_W / 2; // Con lắc treo thẳng đứng
+    const SPRING_TOP_Y = 20;       // Điểm treo cố định
+    const EQ_Y = 200;              // Vị trí cân bằng (O)
+    const MASS_W = 60;
+    const MASS_H = 40;
+
+    // Lấy màu từ CSS
+    function getCssColor(varName) {
+        return getComputedStyle(document.body).getPropertyValue(varName).trim();
+    }
+
+    // --- VẼ PHONG CÁCH SÁCH GIÁO KHOA (ĐỒ THỊ) ---
+    function drawTextbook() {
+        const axisColor = getCssColor('--axis-color');
+        const gridColor = getCssColor('--grid-color');
+        const graphColor = getCssColor('--graph-line');
+
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // 1. Vẽ Lưới
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // Lưới ngang (biên độ A và -A)
+        let yTop = GRAPH_OY - A * SCALE_X;
+        let yBot = GRAPH_OY + A * SCALE_X;
+        ctx.moveTo(GRAPH_OX, yTop); ctx.lineTo(GRAPH_OX + GRAPH_W, yTop);
+        ctx.moveTo(GRAPH_OX, yBot); ctx.lineTo(GRAPH_OX + GRAPH_W, yBot);
+        // Lưới dọc (theo chu kì T)
+        for(let t = 0; t <= MAX_TIME; t += T) {
+            let px = GRAPH_OX + t * SCALE_T;
+            ctx.moveTo(px, yTop - 10); ctx.lineTo(px, yBot + 10);
+        }
+        ctx.stroke();
+
+        // 2. Vẽ Hệ trục
+        ctx.strokeStyle = axisColor;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        // Trục t (Ox)
+        ctx.moveTo(GRAPH_OX - 10, GRAPH_OY); ctx.lineTo(GRAPH_OX + GRAPH_W + 20, GRAPH_OY);
+        // Trục x (Oy)
+        ctx.moveTo(GRAPH_OX, yBot + 20); ctx.lineTo(GRAPH_OX, yTop - 30);
+        ctx.stroke();
+        
+        // Mũi tên
+        ctx.fillStyle = axisColor;
+        ctx.beginPath(); ctx.moveTo(GRAPH_OX + GRAPH_W + 20, GRAPH_OY); ctx.lineTo(GRAPH_OX + GRAPH_W + 10, GRAPH_OY - 5); ctx.lineTo(GRAPH_OX + GRAPH_W + 10, GRAPH_OY + 5); ctx.fill(); // mũi tên t
+        ctx.beginPath(); ctx.moveTo(GRAPH_OX, yTop - 30); ctx.lineTo(GRAPH_OX - 5, yTop - 20); ctx.lineTo(GRAPH_OX + 5, yTop - 20); ctx.fill(); // mũi tên x
+
+        // Nhãn trục
+        ctx.font = "italic 16px 'Times New Roman'";
+        ctx.fillText("t (s)", GRAPH_OX + GRAPH_W + 5, GRAPH_OY + 20);
+        ctx.fillText("x (cm)", GRAPH_OX + 10, yTop - 20);
+        ctx.fillText("O", GRAPH_OX - 15, GRAPH_OY + 15);
+        ctx.fillText("5", GRAPH_OX - 15, yTop + 5);
+        ctx.fillText("-5", GRAPH_OX - 20, yBot + 5);
+
+        // Đánh dấu thời gian
+        ctx.font = "14px 'Times New Roman'";
+        ctx.textAlign = "center";
+        for(let t = T; t <= MAX_TIME; t += T) {
+            ctx.fillText(t.toFixed(1), GRAPH_OX + t * SCALE_T, GRAPH_OY + 20);
+        }
+        ctx.textAlign = "left";
+
+        // 3. Vẽ Đồ thị toàn bộ mờ
+        ctx.strokeStyle = "rgba(220, 53, 69, 0.3)"; // Đỏ nhạt
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(GRAPH_OX, GRAPH_OY - getX(0) * SCALE_X);
+        for(let t = 0; t <= MAX_TIME; t += 0.01) {
+            let px = GRAPH_OX + t * SCALE_T;
+            let py = GRAPH_OY - getX(t) * SCALE_X;
+            ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // 4. Vẽ Đồ thị tới thời điểm hiện tại đậm
+        ctx.strokeStyle = graphColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(GRAPH_OX, GRAPH_OY - getX(0) * SCALE_X);
+        for(let t = 0; t <= currentTime; t += 0.01) {
+            let px = GRAPH_OX + t * SCALE_T;
+            let py = GRAPH_OY - getX(t) * SCALE_X;
+            ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // 5. Chấm tròn tại vị trí hiện tại
+        let currentPx = GRAPH_OX + currentTime * SCALE_T;
+        let currentPy = GRAPH_OY - getX(currentTime) * SCALE_X;
+        
+        ctx.beginPath();
+        ctx.arc(currentPx, currentPy, 6, 0, 2 * Math.PI);
+        ctx.fillStyle = graphColor;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Gióng tọa độ
+        ctx.strokeStyle = axisColor;
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(currentPx, currentPy); ctx.lineTo(currentPx, GRAPH_OY);
+        ctx.moveTo(currentPx, currentPy); ctx.lineTo(GRAPH_OX, currentPy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // --- VẼ PHONG CÁCH CHÂN THỰC (CON LẮC LÒ XO) ---
+    function drawRealistic() {
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+        const springColor = getCssColor('--spring-color');
+        const massColor = getCssColor('--mass-color');
+        const axisColor = getCssColor('--axis-color');
+        
+        // Tính toán vị trí hiện tại
+        let currentX_cm = getX(currentTime);
+        // Trục toạ độ hướng lên cho chuẩn toán học: 
+        // Lò xo dãn (x < 0) khối lượng đi xuống. Lò xo nén (x > 0) khối lượng đi lên.
+        // Tuy nhiên theo bài x = -5cos(4pi*t), lúc t=0, x=-5 (biên âm)
+        let massY = EQ_Y - currentX_cm * SCALE_X; 
+
+        // 1. Vẽ Giá treo
+        ctx.fillStyle = '#555';
+        ctx.fillRect(SPRING_X - 50, SPRING_TOP_Y - 10, 100, 10);
+        // Họa tiết gạch chéo cho giá treo
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i=-40; i<40; i+=10) {
+            ctx.moveTo(SPRING_X + i, SPRING_TOP_Y - 10);
+            ctx.lineTo(SPRING_X + i + 10, SPRING_TOP_Y);
+        }
+        ctx.stroke();
+
+        // 2. Vẽ Lò xo (Zig-zag)
+        ctx.strokeStyle = springColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(SPRING_X, SPRING_TOP_Y);
+        
+        let numCoils = 15;
+        let springLength = massY - SPRING_TOP_Y - MASS_H/2;
+        let coilHeight = springLength / numCoils;
+        
+        for(let i = 1; i <= numCoils; i++) {
+            let offset = (i % 2 === 0) ? -20 : 20;
+            ctx.lineTo(SPRING_X + offset, SPRING_TOP_Y + i * coilHeight - coilHeight/2);
+        }
+        ctx.lineTo(SPRING_X, massY - MASS_H/2);
+        ctx.stroke();
+
+        // 3. Vẽ Khối lượng (Quả nặng)
+        // Tạo gradient 3D kim loại
+        let gradient = ctx.createLinearGradient(SPRING_X - MASS_W/2, 0, SPRING_X + MASS_W/2, 0);
+        gradient.addColorStop(0, '#888');
+        gradient.addColorStop(0.5, '#eee');
+        gradient.addColorStop(1, '#555');
+        
+        ctx.fillStyle = gradient;
+        
+        // Bóng đổ
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 5;
+        ctx.shadowOffsetY = 5;
+        
+        ctx.fillRect(SPRING_X - MASS_W/2, massY - MASS_H/2, MASS_W, MASS_H);
+        ctx.shadowBlur = 0; // Reset bóng
+
+        // Vẽ viền quả nặng
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(SPRING_X - MASS_W/2, massY - MASS_H/2, MASS_W, MASS_H);
+
+        // 4. Vẽ Trục tọa độ x (Thẳng đứng bên phải)
+        let axisX = SPRING_X + 100;
+        ctx.strokeStyle = axisColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Trục x hướng lên
+        ctx.moveTo(axisX, EQ_Y + A * SCALE_X + 20);
+        ctx.lineTo(axisX, EQ_Y - A * SCALE_X - 40);
+        ctx.stroke();
+        
+        // Mũi tên x
+        ctx.fillStyle = axisColor;
+        ctx.beginPath(); ctx.moveTo(axisX, EQ_Y - A * SCALE_X - 40); ctx.lineTo(axisX - 5, EQ_Y - A * SCALE_X - 30); ctx.lineTo(axisX + 5, EQ_Y - A * SCALE_X - 30); ctx.fill();
+        
+        // Các mốc O, A, -A
+        ctx.font = "16px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("x (cm)", axisX - 20, EQ_Y - A * SCALE_X - 50);
+        
+        function drawTick(y, label) {
+            ctx.beginPath(); ctx.moveTo(axisX - 5, y); ctx.lineTo(axisX + 5, y); ctx.stroke();
+            ctx.fillText(label, axisX + 15, y + 5);
+        }
+        drawTick(EQ_Y, "0 (VTCB)");
+        drawTick(EQ_Y - A * SCALE_X, "5");
+        drawTick(EQ_Y + A * SCALE_X, "-5");
+
+        // 5. Đường gióng từ khối nặng sang trục x
+        ctx.strokeStyle = getCssColor('--graph-line');
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(SPRING_X + MASS_W/2 + 5, massY);
+        ctx.lineTo(axisX, massY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Chấm đỏ vị trí hiện tại
+        ctx.beginPath();
+        ctx.arc(axisX, massY, 4, 0, 2*Math.PI);
+        ctx.fillStyle = getCssColor('--graph-line');
+        ctx.fill();
+    }
+
+    // --- CẬP NHẬT DỮ LIỆU ---
+    function updateData() {
+        timeDisplay.textContent = currentTime.toFixed(2) + ' s';
+        valT.textContent = currentTime.toFixed(2);
+        
+        let xVal = getX(currentTime);
+        valX.textContent = xVal.toFixed(2);
+        
+        let phase = getPhase(currentTime);
+        let phaseStr = (phase / Math.PI).toFixed(2) + 'π';
+        valPhase.innerHTML = `${phase.toFixed(2)} rad (${phaseStr})`;
+        
+        // Số dao động toàn phần = t / T
+        let osc = currentTime / T;
+        valOsc.textContent = osc.toFixed(2);
+    }
+
+    // Hàm render chính
+    function render() {
+        if (currentTheme === 'textbook') {
+            drawTextbook();
+        } else {
+            drawRealistic();
+        }
+        updateData();
+    }
+
+    // --- ANIMATION & EVENTS ---
+    function step(timestamp) {
+        if (!isPlaying) return;
+        
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        let deltaTime = (timestamp - lastTimestamp) / 1000; // Giây thực tế
+        
+        // Chỉnh tốc độ mô phỏng chậm lại một chút để dễ nhìn (ví dụ x0.5)
+        currentTime += deltaTime * 0.5; 
+        
+        if (currentTime >= MAX_TIME) {
+            currentTime = MAX_TIME;
+            isPlaying = false;
+            playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+        }
+        
+        timeSlider.value = currentTime;
+        render();
+        
+        lastTimestamp = timestamp;
+        if (isPlaying) {
+            animationId = requestAnimationFrame(step);
+        }
+    }
+
+    timeSlider.addEventListener('input', (e) => {
+        currentTime = parseFloat(e.target.value);
+        if (isPlaying) {
+            isPlaying = false;
+            playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+            cancelAnimationFrame(animationId);
+            lastTimestamp = 0;
+        }
+        render();
+    });
+
+    playPauseBtn.addEventListener('click', () => {
+        if (currentTime >= MAX_TIME) {
+            currentTime = 0;
+            timeSlider.value = 0;
+        }
+        
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            playPauseBtn.textContent = '⏸ Tạm dừng';
+            lastTimestamp = 0;
+            requestAnimationFrame(step);
+        } else {
+            playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+            cancelAnimationFrame(animationId);
+            lastTimestamp = 0;
+        }
+    });
+
+    resetBtn.addEventListener('click', () => {
+        isPlaying = false;
+        playPauseBtn.textContent = '▶ Chạy / Tạm dừng';
+        cancelAnimationFrame(animationId);
+        lastTimestamp = 0;
+        currentTime = 0;
+        timeSlider.value = 0;
+        render();
+    });
+
+    styleToggle.addEventListener('click', () => {
+        if (currentTheme === 'textbook') {
+            currentTheme = 'realistic';
+            document.body.setAttribute('data-theme', 'realistic');
+            styleToggle.textContent = 'Chuyển sang: Sách giáo khoa (Đồ thị)';
+        } else {
+            currentTheme = 'textbook';
+            document.body.setAttribute('data-theme', 'textbook');
+            styleToggle.textContent = 'Chuyển sang: Chân thực (Con lắc lò xo)';
+        }
+        setTimeout(render, 50); // Chờ CSS Variables update
+    });
+
+    // Nút Ẩn/Hiện lời giải
+    toggleSolutionBtn.addEventListener('click', () => {
+        isSolutionVisible = !isSolutionVisible;
+        if(isSolutionVisible) {
+            solutionBox.style.display = 'block';
+            toggleSolutionBtn.textContent = 'Ẩn lời giải';
+        } else {
+            solutionBox.style.display = 'none';
+            toggleSolutionBtn.textContent = 'Hiện lời giải';
+        }
+    });
+
+    // Nút Toàn màn hình[cite: 10, 14]
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`Không thể mở toàn màn hình: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = 'Thu nhỏ';
+        } else {
+            fullscreenBtn.textContent = 'Toàn màn hình';
+        }
+        setTimeout(render, 100); 
+    });
+
+    // Nút Thoát trình duyệt[cite: 10, 14]
+    exitBtn.addEventListener('click', () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+        if (confirm("Bạn có chắc chắn muốn thoát mô phỏng và đóng cửa sổ này không?")) {
+            window.close();
+            alert("Tác giả: Vũ Trung Thành - Tổ Toán-Tin, THPT Bình Giang, Zalo: 0979791802\n(Nếu trình duyệt không tự đóng, vui lòng đóng tab thủ công).");
+        }
+    });
+
+    // Khởi tạo
+    window.onload = render;
+
+</script>
+</body>
+</html>
